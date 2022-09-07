@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, call
 import pytest
 from kgforge.core import Resource
 
-from bluepysnap.nexus import entity as test_module
+from entity_management.nexus import entity as test_module
 
 
 def test_resolving_resource_simple():
