@@ -30,7 +30,11 @@ setup(
         "Source": "https://github.com/BlueBrain/entity-management/",
     },
     license="BBP-internal-confidential",
-    install_requires=[],
+    install_requires=[
+        "lazy-object-proxy>=1.5.2,<2.0.0",
+        "more-itertools>=8.2.0,<9.0.0",
+        "nexusforge>=0.7.0,<1.0.0",
+    ],
     packages=find_packages(),
     python_requires=">=3.6",
     extras_require={"docs": ["sphinx", "sphinx-bluebrain-theme"]},
