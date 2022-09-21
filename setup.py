@@ -30,9 +30,17 @@ setup(
         "Source": "https://github.com/BlueBrain/entity-management/",
     },
     license="BBP-internal-confidential",
-    install_requires=[],
+    entry_points="""
+        [console_scripts]
+        entity-management=entity_management.app.main:main
+    """,
+    install_requires=
+    [
+        'click',
+        'keyring',
+    ],
     packages=find_packages(),
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     extras_require={"docs": ["sphinx", "sphinx-bluebrain-theme"]},
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
