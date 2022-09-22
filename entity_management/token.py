@@ -1,6 +1,8 @@
+import datetime
 import getpass
 
 import keyring
+import jwt
 
 def _token_name(env):
     return f'kgforge:{env}'
@@ -22,8 +24,15 @@ def get_token(env='prod', username=None):
 
     token = keyring.get_password(_token_name(env), username)
 
-    # TODO: should check if expired here
-    if not token:
-        set_token(env='prod', username=username, token=token)
+    info = decode(token)
+    valid = ('exp' in info and
+             datetime.datetime.now() < datetime.datetime.fromtimestamp(info['exp'])
+             )
+
+    if not token or not valid:
+        set_token(env='prod', username=username)
 
     return token
+
+def decode(token):
+    return jwt.decode(token, options={'verify_signature': False})

@@ -1,7 +1,8 @@
-
 import click
+from rich import pretty
 
-from entity_management import token
+import entity_management.token
+
 
 @click.group()
 def app():
@@ -9,10 +10,18 @@ def app():
 
 @app.command()
 def get():
-    tok = token.get_token()
+    tok = entity_management.token.get_token()
     click.echo(tok)
 
 
 @app.command()
-def set():
-    token.set_token()
+@click.option('--token', 'tok', default=None, help="Value of token to set")
+def set(tok):
+    entity_management.token.set_token(token=tok)
+
+
+@app.command()
+def decode():
+    tok = entity_management.token.get_token()
+    info = entity_management.token.decode(tok)
+    pretty.pprint(info)

@@ -1,11 +1,12 @@
 import logging
 import click
 
-from entity_management.app import download, token
+from entity_management.app import download, info, token
 from entity_management.version import VERSION
 
 @click.group(commands={
     'download': download.download,
+    'info': info.info,
     'token': token.app,
 })
 @click.version_option()

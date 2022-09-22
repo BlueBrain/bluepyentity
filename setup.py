@@ -38,6 +38,8 @@ setup(
     [
         'click',
         'keyring',
+        'pyjwt',
+        'rich',
     ],
     packages=find_packages(),
     python_requires=">=3.7",
