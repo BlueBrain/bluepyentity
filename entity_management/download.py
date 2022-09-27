@@ -1,4 +1,3 @@
-from kgforge.core import KnowledgeGraphForge
 from entity_management import environments
 
 import logging
@@ -6,15 +5,7 @@ import logging
 L = logging.getLogger(__name__)
 
 def download(token, id_, autopath=False):
-    with environments.get_environment('prod') as env:
-        forge = KnowledgeGraphForge(
-            str(env.absolute()),
-            token=token,
-            bucket="bbp/atlas",
-            #endpoint='https://staging.nise.bbp.epfl.ch/nexus/v1'
-            )
-        #searchendpoints={"sparql": {"endpoint": "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-sp/dataset"}},
-
+    forge = entity_management.environments.create_forge('prod', token, bucket="bbp/atlas")
     resource = forge.retrieve(id_, cross_bucket=True)
 
     if len(resource.distribution) == 0:
