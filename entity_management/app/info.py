@@ -52,13 +52,17 @@ def extra_print(cons, store_metadata):
 @click.option('--metadata', type=bool, default=False)
 @click.option('--raw-resource', type=bool, default=False)
 @click.argument('id_')
-def info(id_, metadata, raw_resource):
+@click.pass_context
+def info(ctx, id_, metadata, raw_resource):
     """get info on ID_ from NEXUS"""
     cons = console.Console()
 
-    token = entity_management.token.get_token()
+    user = ctx.meta['user']
+    env = ctx.meta['env']
 
-    forge = entity_management.environments.create_forge('prod', token, bucket="bbp/atlas")
+    token = entity_management.token.get_token(env=env, username=user)
+
+    forge = entity_management.environments.create_forge(env, token, bucket="bbp/atlas")
 
     #XXX version?
     resource = forge.retrieve(id_, cross_bucket=True)

@@ -20,7 +20,7 @@ def _token_name(env):
     return f'kgforge:{env}'
 
 
-def set_token(env='prod', username=None, token=None):
+def set_token(env, username=None, token=None):
     username = _getuser(username)
 
     if token is None:
@@ -29,7 +29,7 @@ def set_token(env='prod', username=None, token=None):
     keyring.set_password(_token_name(env), username, token)
 
 
-def get_token(env='prod', username=None):
+def get_token(env, username=None):
     username = _getuser(username)
 
     token = keyring.get_password(_token_name(env), username)

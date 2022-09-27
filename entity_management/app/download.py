@@ -4,8 +4,12 @@ import entity_management
 
 @click.command()
 @click.argument('id_')
-def download(id_):
+@click.pass_context
+def download(ctx, id_):
     """Download ID_ from NEXUS"""
-    token = entity_management.token.get_token()
+    user = ctx.meta['user']
+    env = ctx.meta['env']
+
+    token = entity_management.token.get_token(env=env, username=user)
 
     entity_management.download.download(token, id_, autopath=True)

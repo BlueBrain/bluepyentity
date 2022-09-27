@@ -1,8 +1,13 @@
+import getpass
 import logging
 import click
 
 from entity_management.app import download, info, token
 from entity_management.version import VERSION
+
+
+USER = getpass.getuser()
+
 
 @click.group(commands={
     'download': download.download,
@@ -11,9 +16,10 @@ from entity_management.version import VERSION
 })
 @click.version_option()
 @click.option("-v", "--verbose", count=True, help="Multiple increases logging level")
-#@click.argument("--env", type=str, default="prod", help="Name of the enviroment to use")
-#@click.argument("--user", type=str, help="User to login as")
-def main(verbose):
+@click.option("--env", type=str, default="prod", help="Name of the enviroment to use")
+@click.option("--user", type=str, default=USER, help="User to login as")
+@click.pass_context
+def main(ctx, verbose, env, user):
     """The CLI object."""
     logging.basicConfig(
         level=(logging.WARNING, logging.INFO, logging.DEBUG)[min(verbose, 2)],
@@ -21,6 +27,5 @@ def main(verbose):
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-
-if __name__ == '__main__':
-    main()
+    ctx.meta['user'] = user
+    ctx.meta['env'] = env
