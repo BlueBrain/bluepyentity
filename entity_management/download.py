@@ -17,3 +17,6 @@ def download(token, id_, autopath=False):
         return
 
     forge.download(resource.distribution, "contentUrl", ".", overwrite=True)
+
+
+#def staging():

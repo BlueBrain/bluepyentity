@@ -1,3 +1,5 @@
+import sys
+
 import click
 from rich import pretty, text, console
 
@@ -51,9 +53,10 @@ def extra_print(cons, store_metadata):
 @click.command()
 @click.option('--metadata', type=bool, default=False)
 @click.option('--raw-resource', type=bool, default=False)
+@click.option('--bucket', type=str, default='bbp/atlas')
 @click.argument('id_')
 @click.pass_context
-def info(ctx, id_, metadata, raw_resource):
+def info(ctx, id_, metadata, raw_resource, bucket):
     """get info on ID_ from NEXUS"""
     cons = console.Console()
 
@@ -61,11 +64,14 @@ def info(ctx, id_, metadata, raw_resource):
     env = ctx.meta['env']
 
     token = entity_management.token.get_token(env=env, username=user)
-
-    forge = entity_management.environments.create_forge(env, token, bucket="bbp/atlas")
+    forge = entity_management.environments.create_forge(env, token, bucket)
 
     #XXX version?
     resource = forge.retrieve(id_, cross_bucket=True)
+    if resource is None:
+        cons.print(f'[red]Unable to find a resource with id: {id_}')
+        sys.exit(-1)
+
     store_metadata = resource._store_metadata
     rtype = type(resource)
     data = vars(resource)
