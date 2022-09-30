@@ -30,13 +30,22 @@ setup(
         "Source": "https://github.com/BlueBrain/entity-management/",
     },
     license="BBP-internal-confidential",
-    install_requires=[
+    entry_points="""
+        [console_scripts]
+        entity-management=entity_management.app.main:main
+    """,
+    install_requires=
+    [
+        "click",
+        "keyring",
         "lazy-object-proxy>=1.5.2,<2.0.0",
         "more-itertools>=8.2.0,<9.0.0",
         "nexusforge>=0.7.0,<1.0.0",
+        "pyjwt",
+        "rich",
     ],
     packages=find_packages(),
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     extras_require={"docs": ["sphinx", "sphinx-bluebrain-theme"]},
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
@@ -44,7 +53,6 @@ setup(
         "Intended Audience :: Science/Research",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
