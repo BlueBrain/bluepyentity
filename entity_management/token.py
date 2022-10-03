@@ -1,5 +1,6 @@
 import datetime
 import getpass
+import os
 
 import keyring
 import jwt
@@ -30,6 +31,9 @@ def set_token(env, username=None, token=None):
 
 
 def get_token(env, username=None):
+    if 'NEXUS_TOKEN' in os.environ:
+        return os.environ['NEXUS_TOKEN']
+
     username = _getuser(username)
 
     token = keyring.get_password(_token_name(env), username)
