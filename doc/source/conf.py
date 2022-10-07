@@ -19,7 +19,7 @@ from pkg_resources import get_distribution
 
 # -- Project information -----------------------------------------------------
 
-project = "entity-management"
+project = "entity-manager"
 
 # The short X.Y version
 version = get_distribution("entity_management").version
@@ -64,7 +64,7 @@ html_theme_options = {
     "metadata_distribution": "entity_management",
 }
 
-html_title = "entity-management"
+html_title = "entity-manager"
 
 # If true, links to the reST sources are added to the pages.
 html_show_sourcelink = False

@@ -18,21 +18,21 @@ spec.loader.exec_module(module)
 VERSION = module.__version__
 
 setup(
-    name="entity-management",
+    name="entity-manager",
     author="'Blue Brain Project, EPFL'",
     version=VERSION,
     description="NEXUS Productivity Layer",
     long_description=README,
     long_description_content_type="text/x-rst",
-    url="https://github.com/BlueBrain/entity-management/",
+    url="https://github.com/BlueBrain/entity-manager/",
     project_urls={
-        "Tracker": "https://github.com/BlueBrain/entity-management/",
-        "Source": "https://github.com/BlueBrain/entity-management/",
+        "Tracker": "https://github.com/BlueBrain/entity-manager/",
+        "Source": "https://github.com/BlueBrain/entity-manager/",
     },
     license="BBP-internal-confidential",
     entry_points="""
         [console_scripts]
-        entity-management=entity_management.app.main:main
+        entity-manager=entity_management.app.main:main
     """,
     install_requires=
     [
