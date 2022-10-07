@@ -23,8 +23,8 @@ from functools import partial
 from kgforge.core import Resource
 from more_itertools import all_equal, always_iterable, first
 
-from entity_management.nexus import tools
-from entity_management.nexus.entity import Entity
+from entity_manager.nexus import tools
+from entity_manager.nexus.entity import Entity
 
 L = logging.getLogger(__name__)
 

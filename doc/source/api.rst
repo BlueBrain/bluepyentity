@@ -3,7 +3,7 @@
 API Documentation
 =================
 
-.. automodule:: entity_management
+.. automodule:: entity_manager
 
 .. autosummary::
     :toctree: generated

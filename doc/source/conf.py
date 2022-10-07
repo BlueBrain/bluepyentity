@@ -22,7 +22,7 @@ from pkg_resources import get_distribution
 project = "entity-manager"
 
 # The short X.Y version
-version = get_distribution("entity_management").version
+version = get_distribution("entity_manager").version
 
 # The full version, including alpha/beta/rc tags
 release = version
@@ -61,7 +61,7 @@ html_theme = "sphinx-bluebrain-theme"
 # html_static_path = ['_static']
 
 html_theme_options = {
-    "metadata_distribution": "entity_management",
+    "metadata_distribution": "entity_manager",
 }
 
 html_title = "entity-manager"

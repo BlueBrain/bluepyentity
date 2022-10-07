@@ -10,8 +10,8 @@ with open("README.rst", encoding="utf-8") as f:
     README = f.read()
 
 spec = importlib.util.spec_from_file_location(
-    "entity_management.version",
-    "entity_management/version.py",
+    "entity_manager.version",
+    "entity_manager/version.py",
 )
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
@@ -32,7 +32,7 @@ setup(
     license="BBP-internal-confidential",
     entry_points="""
         [console_scripts]
-        entity-manager=entity_management.app.main:main
+        entity-manager=entity_manager.app.main:main
     """,
     install_requires=
     [

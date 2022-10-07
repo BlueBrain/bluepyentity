@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-import entity_management.nexus.tools as test_module
-from entity_management.nexus.entity import Entity
+import entity_manager.nexus.tools as test_module
+from entity_manager.nexus.entity import Entity
 
 
 def test_wrap_morphology_dataframe_as_entities():

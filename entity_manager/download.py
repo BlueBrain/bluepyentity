@@ -1,11 +1,11 @@
-from entity_management import environments
+from entity_manager import environments
 
 import logging
 
 L = logging.getLogger(__name__)
 
 def download(token, id_, autopath=False):
-    forge = entity_management.environments.create_forge('prod', token, bucket="bbp/atlas")
+    forge = entity_manager.environments.create_forge('prod', token, bucket="bbp/atlas")
     resource = forge.retrieve(id_, cross_bucket=True)
 
     if len(resource.distribution) == 0:

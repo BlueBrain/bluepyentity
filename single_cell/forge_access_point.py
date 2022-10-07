@@ -6,7 +6,7 @@ import logging
 import pathlib
 
 import jwt
-from entity_management.state import refresh_token
+from entity_manager.state import refresh_token
 from kgforge.core import KnowledgeGraphForge
 from kgforge.core import Resource
 from kgforge.core.commons.strategies import ResolvingStrategy

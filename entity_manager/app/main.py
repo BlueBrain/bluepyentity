@@ -2,8 +2,8 @@ import getpass
 import logging
 import click
 
-from entity_management.app import download, info, token
-from entity_management.version import VERSION
+from entity_manager.app import download, info, token
+from entity_manager.version import VERSION
 
 
 USER = getpass.getuser()

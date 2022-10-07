@@ -1,5 +1,5 @@
 entity-manager
-=================
+==============
 
 NEXUS Productivity Layer
 
