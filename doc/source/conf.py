@@ -19,10 +19,10 @@ from pkg_resources import get_distribution
 
 # -- Project information -----------------------------------------------------
 
-project = "entity-manager"
+project = "bluepyentity"
 
 # The short X.Y version
-version = get_distribution("entity_manager").version
+version = get_distribution("bluepyentity").version
 
 # The full version, including alpha/beta/rc tags
 release = version
@@ -61,10 +61,10 @@ html_theme = "sphinx-bluebrain-theme"
 # html_static_path = ['_static']
 
 html_theme_options = {
-    "metadata_distribution": "entity_manager",
+    "metadata_distribution": "bluepyentity",
 }
 
-html_title = "entity-manager"
+html_title = "bluepyentity"
 
 # If true, links to the reST sources are added to the pages.
 html_show_sourcelink = False

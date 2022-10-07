@@ -4,7 +4,7 @@ import pytest
 from kgforge.core import Resource
 from lazy_object_proxy import Proxy
 
-from entity_manager.nexus import factory as test_module
+from bluepyentity.nexus import factory as test_module
 
 
 def test_entity_factory_init():
@@ -65,7 +65,7 @@ def test_entity_factory_open():
 def test_entity_factory_open_instance():
     mocked_instance = MagicMock()
     with patch(
-        "entity_manager.nexus.tools.open_circuit_snap", return_value=mocked_instance
+        "bluepyentity.nexus.tools.open_circuit_snap", return_value=mocked_instance
     ) as mocked_opener:
         factory = test_module.EntityFactory(helper=MagicMock(), connector=MagicMock())
         resource = Resource(type="DetailedCircuit")
@@ -80,7 +80,7 @@ def test_entity_factory_open_instance():
 def test_entity_factory_open_instance_with_default_tool():
     mocked_instance = MagicMock()
     with patch(
-        "entity_manager.nexus.tools.open_circuit_snap", return_value=mocked_instance
+        "bluepyentity.nexus.tools.open_circuit_snap", return_value=mocked_instance
     ) as mocked_opener:
         factory = test_module.EntityFactory(helper=MagicMock(), connector=MagicMock())
         resource = Resource(type="DetailedCircuit")
@@ -92,7 +92,7 @@ def test_entity_factory_open_instance_with_default_tool():
         mocked_opener.assert_called_once_with(result)
 
     with patch(
-        "entity_manager.nexus.tools.open_emodelconfiguration", return_value=mocked_instance
+        "bluepyentity.nexus.tools.open_emodelconfiguration", return_value=mocked_instance
     ) as mocked_opener:
         connector = MagicMock()
         resource = Resource(type="EModelConfiguration")
@@ -123,7 +123,7 @@ def test_entity_factory_open_instance_with_non_default_tool():
 
 
 def test_entity_factory_fail_to_open_instance():
-    with patch("entity_manager.nexus.tools.open_circuit_snap", side_effect=Exception("error")):
+    with patch("bluepyentity.nexus.tools.open_circuit_snap", side_effect=Exception("error")):
         factory = test_module.EntityFactory(helper=MagicMock(), connector=MagicMock())
         resource = Resource(type="DetailedCircuit")
 

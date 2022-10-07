@@ -28,7 +28,7 @@ from pathlib import Path
 
 from more_itertools import always_iterable
 
-from entity_manager.nexus.entity import DOWNLOADED_CONTENT_PATH
+from bluepyentity.nexus.entity import DOWNLOADED_CONTENT_PATH
 
 L = logging.getLogger(__name__)
 
@@ -267,11 +267,11 @@ def wrap_morphology_dataframe_as_entities(df, helper, tool=None):
         tool (callable): The function to use to open the morphologies.
 
     Returns:
-        tuple: An array of entities (:py:class:`~entity_manager.nexus.entity.Entity`).
+        tuple: An array of entities (:py:class:`~bluepyentity.nexus.entity.Entity`).
     """
     from kgforge.core import Resource
 
-    from entity_manager.nexus.entity import Entity
+    from bluepyentity.nexus.entity import Entity
 
     df = df[["name", "path"]]
     return tuple(

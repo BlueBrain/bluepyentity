@@ -1,6 +1,6 @@
 import click
 
-import entity_manager
+import bluepyentity
 
 @click.command()
 @click.argument('id_')
@@ -10,6 +10,6 @@ def download(ctx, id_):
     user = ctx.meta['user']
     env = ctx.meta['env']
 
-    token = entity_manager.token.get_token(env=env, username=user)
+    token = bluepyentity.token.get_token(env=env, username=user)
 
-    entity_manager.download.download(token, id_, autopath=True)
+    bluepyentity.download.download(token, id_, autopath=True)

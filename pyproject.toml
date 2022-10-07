@@ -5,7 +5,7 @@ target-version = [
     'py37',
     'py38',
 ]
-include = 'entity_manager\/.*\.py$|tests\/.*\.py$|doc\/source\/conf\.py$|setup\.py$'
+include = 'bluepyentity\/.*\.py$|tests\/.*\.py$|doc\/source\/conf\.py$|setup\.py$'
 
 [tool.isort]
 profile = 'black'

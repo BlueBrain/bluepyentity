@@ -5,7 +5,7 @@ from rich import pretty, text, console
 
 import click
 
-import entity_manager
+import bluepyentity
 
 def visit_container(container, func, dict_func=None):
     def visit(c):
@@ -63,8 +63,8 @@ def info(ctx, id_, metadata, raw_resource, bucket):
     user = ctx.meta['user']
     env = ctx.meta['env']
 
-    token = entity_manager.token.get_token(env=env, username=user)
-    forge = entity_manager.environments.create_forge(env, token, bucket)
+    token = bluepyentity.token.get_token(env=env, username=user)
+    forge = bluepyentity.environments.create_forge(env, token, bucket)
 
     #XXX version?
     resource = forge.retrieve(id_, cross_bucket=True)

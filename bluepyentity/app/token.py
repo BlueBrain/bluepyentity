@@ -1,7 +1,7 @@
 import click
 from rich import pretty
 
-import entity_manager.token
+import bluepyentity.token
 
 
 @click.group()
@@ -13,7 +13,7 @@ def app():
 def get(ctx):
     user = ctx.meta['user']
     env = ctx.meta['env']
-    tok = entity_manager.token.get_token(env=env, username=user)
+    tok = bluepyentity.token.get_token(env=env, username=user)
     click.echo(tok)
 
 
@@ -23,7 +23,7 @@ def get(ctx):
 def set(ctx, tok):
     user = ctx.meta['user']
     env = ctx.meta['env']
-    entity_manager.token.set_token(env=env, username=user, token=tok)
+    bluepyentity.token.set_token(env=env, username=user, token=tok)
 
 
 @app.command()
@@ -31,6 +31,6 @@ def set(ctx, tok):
 def decode(ctx):
     user = ctx.meta['user']
     env = ctx.meta['env']
-    tok = entity_manager.token.get_token(env=env, username=user)
-    info = entity_manager.token.decode(tok)
+    tok = bluepyentity.token.get_token(env=env, username=user)
+    info = bluepyentity.token.decode(tok)
     pretty.pprint(info)

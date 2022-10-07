@@ -3,7 +3,7 @@
 API Documentation
 =================
 
-.. automodule:: entity_manager
+.. automodule:: bluepyentity
 
 .. autosummary::
     :toctree: generated

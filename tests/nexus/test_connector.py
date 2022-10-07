@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 from kgforge.core import KnowledgeGraphForge, Resource
 
-from entity_manager.nexus import connector as test_module
+from bluepyentity.nexus import connector as test_module
 
 
 def test_nexus_connector_init():
