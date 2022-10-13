@@ -1,5 +1,5 @@
-entity-management
-=================
+bluepyentity
+============
 
 NEXUS Productivity Layer
 
@@ -22,23 +22,23 @@ Using the `keyring`_, a NEXUS token can be stored to reduce the number of requir
 .. code-block:: bash
 
     token='copy your token here'
-    entity-management token set --token $token
+    bluepyentity token set --token $token
 
 One can see the contents of the token with:
 
 .. code-block:: bash
 
-    entity-management token decode
+    bluepyentity token decode
 
 One can get the token with (note that this can be piped to other apps that need the token, or saved as an environment variable:
 
 .. code-block:: bash
 
-    entity-management token get
+    bluepyentity token get
 
     # save as environment variable:
 
-    token=`entity-management token get`
+    token=`bluepyentity token get`
 
 Info:
 -----
@@ -47,6 +47,6 @@ One can look at the associated information of an identifier with:
 
 .. code-block:: bash
 
-    entity-management info SOME_ID
+    bluepyentity info SOME_ID
 
 .. _`keyring`: https://github.com/jaraco/keyring

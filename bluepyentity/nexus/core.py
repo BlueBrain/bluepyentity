@@ -20,8 +20,8 @@ import logging
 
 from kgforge.core import KnowledgeGraphForge
 
-from entity_management.nexus.connector import NexusConnector
-from entity_management.nexus.factory import EntityFactory
+from bluepyentity.nexus.connector import NexusConnector
+from bluepyentity.nexus.factory import EntityFactory
 
 L = logging.getLogger(__name__)
 NEXUS_CONFIG_DEFAULT = (
@@ -55,7 +55,7 @@ class NexusHelper:
 
     @property
     def factory(self):
-        """:py:class:`~entity_management.nexus.factory.EntityFactory` instance creating the entities."""
+        """:py:class:`~bluepyentity.nexus.factory.EntityFactory` instance creating the entities."""
         return self._factory
 
     def get_entity_by_id(self, resource_id, tool=None, **kwargs):
@@ -64,7 +64,7 @@ class NexusHelper:
         Args:
             resource_id (str): ID of a Nexus resource.
             tool (str): Name of the tool to open the resource with, or None to use the default tool
-                        (see :py:class:`~entity_management.nexus.factory.EntityFactory.open`).
+                        (see :py:class:`~bluepyentity.nexus.factory.EntityFactory.open`).
             kwargs (dict): See KnowledgeGraphForge.retrieve.
 
         Returns:
@@ -79,11 +79,11 @@ class NexusHelper:
         Args:
             query (str): Query string to be passed to KnowledgeGraphForge.sparql
             tool (str): Name of the tool to open the resource with, or None to use the default tool
-                        (see :py:class:`~entity_management.nexus.factory.EntityFactory.open`).
+                        (see :py:class:`~bluepyentity.nexus.factory.EntityFactory.open`).
             kwargs (dict): See KnowledgeGraphForge.sparql.
 
         Returns:
-            list: An array of found entities (py:class:~entity_management.nexus.entity.Entity`).
+            list: An array of found entities (py:class:~bluepyentity.nexus.entity.Entity`).
         """
         resources = self._connector.get_resources_by_query(query, tool=tool, **kwargs)
         return [self._factory.open(r, tool=tool) for r in resources]
@@ -95,7 +95,7 @@ class NexusHelper:
             type_ (str): Resource type (e.g., ``"DetailedCircuit"``).
             filters (dict): Search filters to use.
             tool (str): Name of the tool to open the resource with, or None to use the default tool
-                        (see :py:class:`~entity_management.nexus.factory.EntityFactory.open`).
+                        (see :py:class:`~bluepyentity.nexus.factory.EntityFactory.open`).
             kwargs (dict): See KnowledgeGraphForge.search.
 
         Returns:
@@ -115,7 +115,7 @@ class NexusHelper:
         """Return a pandas dataframe representing the list of entities.
 
         Args:
-            data (list): List of :py:class:`~entity_management.nexus.entity.Entity` objects.
+            data (list): List of :py:class:`~bluepyentity.nexus.entity.Entity` objects.
             store_metadata(bool): A flag indicating whether or not to include metadata in the
                                   output.
             kwargs (dict): See KnowledgeGraphForge.as_dataframe.
@@ -146,7 +146,7 @@ class NexusHelper:
         Args:
             entity (Entity): Entity to be opened.
             tool (str): Name of the tool to open the resource with, or None to use the default tool
-                        (see :py:class:`~entity_management.nexus.factory.EntityFactory.open`).
+                        (see :py:class:`~bluepyentity.nexus.factory.EntityFactory.open`).
 
         Returns:
             Entity: An entity binding the resource and the opener.

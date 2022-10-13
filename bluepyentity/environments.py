@@ -10,7 +10,7 @@ ENVIRONMENTS = {
 
 
 def get_environment(env):
-    return importlib.resources.path('entity_management.data', ENVIRONMENTS[env])
+    return importlib.resources.path('bluepyentity.data', ENVIRONMENTS[env])
 
 
 def create_forge(environment, token, bucket):

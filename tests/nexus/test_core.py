@@ -3,9 +3,9 @@ from unittest.mock import patch
 import pandas as pd
 from kgforge.core import Resource
 
-from entity_management.nexus import core as test_module
-from entity_management.nexus.entity import Entity
-from entity_management.nexus.factory import EntityFactory
+from bluepyentity.nexus import core as test_module
+from bluepyentity.nexus.entity import Entity
+from bluepyentity.nexus.factory import EntityFactory
 
 
 @patch(test_module.__name__ + ".KnowledgeGraphForge")

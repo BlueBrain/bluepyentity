@@ -1,11 +1,11 @@
-from entity_management import environments
+from bluepyentity import environments
 
 import logging
 
 L = logging.getLogger(__name__)
 
 def download(token, id_, autopath=False):
-    forge = entity_management.environments.create_forge('prod', token, bucket="bbp/atlas")
+    forge = bluepyentity.environments.create_forge('prod', token, bucket="bbp/atlas")
     resource = forge.retrieve(id_, cross_bucket=True)
 
     if len(resource.distribution) == 0:

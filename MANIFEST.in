@@ -2,4 +2,4 @@ graft tests
 
 global-exclude *.py[co] .DS_Store
 
-graft entity_management/data/
+graft bluepyentity/data/
