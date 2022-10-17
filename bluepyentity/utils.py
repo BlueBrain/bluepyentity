@@ -2,9 +2,22 @@
 
 """useful utilities"""
 import getpass
+import json
 import sys
 import termios
 from collections import OrderedDict
+from pathlib import Path
+
+import pkg_resources
+import yaml
+
+DEFAULT_PARAMS_PATH = pkg_resources.resource_filename(__name__, "default_params.yaml")
+
+FILE_PARSERS = {
+    ".yml": yaml.safe_load,
+    ".yaml": yaml.safe_load,
+    ".json": json.load,
+}
 
 
 def visit_container(container, func, dict_func=None):
@@ -82,3 +95,31 @@ def get_secret(prompt):
         stream.flush()  # issue7208
 
     return passwd
+
+
+def parse_dict_from_file(path):
+    """Parse dictionary from a file.
+
+    Args:
+        path (str): Path to the YAML or JSON file.
+
+    Returns:
+        dict: file parsed as a dictionary.
+    """
+    suffix = Path(path).suffix.lower()
+    if suffix not in FILE_PARSERS:
+        raise RuntimeError(f"unknown file format: {suffix}")
+
+    with open(path, "r", encoding="utf-8") as fd:
+        return FILE_PARSERS[suffix](fd)
+
+
+def get_default_params(type_):
+    """Get default parameters for given type.
+    Args:
+        type_ (str): type of resource
+
+    Returns:
+        dict: default parameters as dict
+    """
+    return parse_dict_from_file(DEFAULT_PARAMS_PATH).get(type_, {})

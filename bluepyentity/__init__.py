@@ -2,5 +2,5 @@
 
 """bluepyentity."""
 
-from bluepyentity import download
+from bluepyentity import download, register, utils
 from bluepyentity.version import __version__

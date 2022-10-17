@@ -45,6 +45,9 @@ setup(
         "rich",
     ],
     packages=find_packages(),
+    package_data={
+        "entity-management": ["*.yaml"],
+    },
     python_requires=">=3.7",
     extras_require={"docs": ["sphinx", "sphinx-bluebrain-theme"]},
     classifiers=[

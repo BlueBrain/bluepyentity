@@ -1,0 +1,6 @@
+DetailedCircuit:
+  subject:
+    type: Subject
+    species:
+      id:  http://purl.obolibrary.org/obo/NCBITaxon_10090
+      label: Mus Musculus
