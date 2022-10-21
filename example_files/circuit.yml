@@ -1,0 +1,13 @@
+type: DetailedCircuit
+#id: https://bbp.epfl.ch/nexus/v1/resources/nse/test2/_/9be40e75-8744-415b-b0b4-e4074ff54a8f
+brain_location:
+    brain_region:
+      url: http://api.brain-map.org/api/v2/data/Structure/549
+      label: Thalamus
+name: Test Circuit registration
+description: Test registration, to be deprecated
+circuitType: Test registration
+circuitConfigPath: /this/path/does/not/exist/either
+wasGeneratedBy:
+  - https://bbp.epfl.ch/nexus/v1/resources/nse/test2/_/9be40e75-8744-415b-b0b4-e4074ff54a8f
+  - https://bbp.epfl.ch/nexus/v1/resources/nse/test2/_/2b5819a1-c5e9-42c4-8da7-864d5e1e0a7e

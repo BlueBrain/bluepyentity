@@ -1,6 +1,120 @@
+# Collection of different entity types. Will be a collection of default params based on entity type
+# Could also be used as collection of allowed params but Nexus schema should check for that.
+
+# CIRCUIT
+
 DetailedCircuit:
-  subject:
-    type: Subject
-    species:
-      id:  http://purl.obolibrary.org/obo/NCBITaxon_10090
-      label: Mus Musculus
+  type: DetailedCircuit
+  name: null
+  description: null
+  subject: null # needs to be decided
+  brain_location: null # needs to be decided
+  wasGeneratedBy: null # a single item
+  # the following is only found in published data:
+  atlasRelease: null # should point to the atlas release item?
+  contribution: null # list of contributors. Only in some occasions
+  objectOfStudy: null # ?
+  distribution: null # downloadable items
+  license: null # linked to the license
+  # Also contains, but was supposed to be removed(?):
+  # circuitBase
+  # nodeCollection
+  # edgeCollection
+  # target
+
+# SIMULATION
+#
+Simulation:
+  type: Simulation
+  used: null # Detailed circuit used to run the simulation
+  brainLocation: null # needs to be decided, only some Simulations have this
+  jobId: null # string (= slurm job ID), not in all simulations
+  spikes: null # Generated spike report. not in all simulations
+  generated: null # List of enerated reports by the simulation. is the spikes needed if we have this?
+  params: null # If simulation is part of the campaign, file that contains all the sim params. In some cases the params are attached to simulation
+  startedAtTime: null
+  endedAtTime: null
+  wasGeneratedBy: null # list of Entities
+
+# ANALYSIS
+
+Analysis: # Describes the activity
+  type: Analysis
+  name: null
+  status: null # Done / Pending / ?
+  startedAtTime: null
+  endedAtTime: null
+  used: null # list of items used (at least AnalysisConfiguration)
+
+AnalysisReport: # the actual analysis report
+    type: AnalysisReport
+    distribution: null # image of the report as an uploaded DataDownload report
+    description: null
+    wasGeneratedBy: null # Analysis item that resulted in the report
+
+# NOTE:
+# Rest of the file is more of collection of entity definitions and not meant to be used as is
+
+# SIMULATION CAMPAIGN
+
+SimulationCampaignConfiguration:
+  name: ''
+  description: ''
+  configuration: /file/path/to/params.json # should be converted to data download (GPFS vs. uploaded?)
+  template: /path/to/template/BlueConfig # should be path to sonata sim config
+  target: /path/to/optional/target # IIRC, this was going to be removed (or only in circuits?)
+
+
+# SUBJECT
+
+# Some variations of this is currently used with mouse
+SubjectMusMusculus:
+  type: Subject
+  providerId: null # id as a string, e.g.: mtC231100A, not always given
+  species:
+    id: http://purl.obolibrary.org/obo/NCBITaxon_10090
+    label: Mus musculus
+  strain: # not all of the mouse subjects have this
+    id: http://www.ebi.ac.uk/efo/EFO_0000606
+    label: C57BL/6J
+
+# Used with Rattus Norvegicus (some variations of this)
+SubjectRattusNorvegicus:
+  name: string
+  identifier: null # id as a string, e.g.: mtC050301A, not always given
+  type:
+    - Entity
+    - Subject
+  species:
+    id: ncbitaxon:10116
+    label: Rattus norvegicus
+  strain:
+    id: http://purl.obolibrary.org/obo/RS_0001833
+    label: Wistar Han
+  wasGeneratedBy:
+    id: https://bbp.epfl.ch/neurosciencegraph/data/c9d7a746-f626-4a72-8379-27c8fccdc011
+    type: WorkflowExecution
+
+
+# BRAIN LOCATION
+
+# This was the old brain location definition
+BrainLocationOld:
+  type: BrainLocation
+  brainRegion:
+    type: BrainRegion
+    id: http://purl.obolibrary.org/obo/UBERON_0008933
+    label: primary somatosensory cortex
+
+# Something like this is what we would be using
+BrainLocationNew:
+  type: BrainLocation
+  label: Isocortex
+  brainRegion:
+    id: http://api.brain-map.org/api/v2/data/Structure/315
+    type: Class
+    label: Isocortex
+    isDefinedBy: http://bbp.epfl.ch/neurosciencegraph/ontologies/core/brainregion
+    notation: Isocortex
+    prefLabel: Isocortex
+    subClassOf: nsg:BrainRegion

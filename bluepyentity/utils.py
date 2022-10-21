@@ -123,3 +123,27 @@ def get_default_params(type_):
         dict: default parameters as dict
     """
     return parse_dict_from_file(DEFAULT_PARAMS_PATH).get(type_, {})
+
+
+def traverse_attributes(item, path):
+    """Get item attribute based on given attribute path.
+
+    Args:
+        item (dict, object): Item to traverse.
+        path (Iterable): Attribute path.
+
+    Returns:
+        Any,NoneType: Requested attribute, None if doesn't exist.
+
+    Examples:
+        >>> A = {'a': {'b': {'c': 'd'}}}
+        ... forgiving_getter(dictionary, ['a', 'b', 'c'])  # Returns: 'd'
+        ... forgiving_getter(dictionary, ['a', 'b', 'x'])  # Returns: None
+    """
+    if not path:
+        return item
+
+    if hasattr(item, path[0]):
+        return traverse_attributes(getattr(item, path[0]), path[1:])
+
+    return None
