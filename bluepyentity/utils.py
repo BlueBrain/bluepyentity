@@ -6,6 +6,7 @@ import json
 import sys
 import termios
 from collections import OrderedDict
+from functools import partial
 from pathlib import Path
 
 import pkg_resources
@@ -13,9 +14,32 @@ import yaml
 
 DEFAULT_PARAMS_PATH = pkg_resources.resource_filename(__name__, "default_params.yaml")
 
+
+class NoDatesSafeLoader(yaml.SafeLoader):
+    """Safeloader to remove date and time conversion to objects.
+
+    From https://stackoverflow.com/questions/34667108/ignore-dates-and-times-while-parsing-yaml.
+    """
+    # TODO: See if there's a better way to do this
+
+    @classmethod
+    def remove_date_resolver(cls):
+        """Remove date resolvers."""
+        if "yaml_implicit_resolvers" not in cls.__dict__:
+            cls.yaml_implicit_resolvers = cls.yaml_implicit_resolvers.copy()
+
+        for first_letter, mappings in cls.yaml_implicit_resolvers.items():
+            cls.yaml_implicit_resolvers[first_letter] = [
+                (tag, regexp) for tag, regexp in mappings if tag != "tag:yaml.org,2002:timestamp"
+            ]
+
+
+NoDatesSafeLoader.remove_date_resolver()
+
+
 FILE_PARSERS = {
-    ".yml": yaml.safe_load,
-    ".yaml": yaml.safe_load,
+    ".yml": partial(yaml.load, Loader=NoDatesSafeLoader),
+    ".yaml": partial(yaml.load, Loader=NoDatesSafeLoader),
     ".json": json.load,
 }
 
