@@ -2,7 +2,7 @@ import getpass
 import logging
 import click
 
-from bluepyentity.app import download, info, token
+from bluepyentity.app import download, info, project, token
 from bluepyentity.version import VERSION
 
 
@@ -13,6 +13,7 @@ USER = getpass.getuser()
     'download': download.download,
     'info': info.info,
     'token': token.app,
+    'project': project.app,
 })
 @click.version_option()
 @click.option("-v", "--verbose", count=True, help="Multiple increases logging level")

@@ -6,20 +6,7 @@ from rich import pretty, text, console
 import click
 
 import bluepyentity
-
-def visit_container(container, func, dict_func=None):
-    def visit(c):
-        if isinstance(c, tuple):
-            return tuple(visit(val) for val in c)
-        elif isinstance(c, list):
-            return [visit(val) for val in c]
-        elif isinstance(c, dict):
-            return {k: visit(v) for k, v in c.items() if dict_func is None or dict_func(k, v)}
-        elif isinstance(c, set):
-            return {visit(v) for v in c}
-        return func(c)
-    return visit(container)
-
+from bluepyentity import utils
 
 def extra_print(cons, store_metadata):
     import dateutil
@@ -83,7 +70,7 @@ def info(ctx, id_, metadata, raw_resource, bucket):
         def pretty_resource(res):
             if not isinstance(res, rtype):
                 return res
-            visit_container(vars(res), pretty_resource)
+            utils.visit_container(vars(res), pretty_resource)
 
             def __rich_repr__():
                for k, v in vars(res).items():
@@ -94,7 +81,7 @@ def info(ctx, id_, metadata, raw_resource, bucket):
             res.__rich_repr__ = __rich_repr__
             return res
 
-        data = visit_container(data, pretty_resource)
+        data = utils.visit_container(data, pretty_resource)
 
     if 1 or add_rev:
         extra_print(cons, store_metadata)
