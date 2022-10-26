@@ -19,16 +19,19 @@ def _is_url(item):
 
 
 def _wrap_file_path(path):
+    """Wraps path as file URI if not already wrapped"""
     return RE_NOT_FILE_URI.sub(FILE_URI, path)
 
 
 def _wrap_id(id_, type_):
+    """Wrap Nexus ID to an object"""
     return {"type": type_, "id": id_}
 
 
 def _wrap_id_fetch(id_, forge):
+    """Find items with given IDs in Nexus and wrap them as objects."""
     if _is_url(id_):
-        nexus_resource = forge.retrieve(id_)
+        nexus_resource = forge.retrieve(id_, cross_bucket=True)
 
         if nexus_resource is not None:
             return _wrap_id(id_, nexus_resource.type)
@@ -47,25 +50,31 @@ class Resource(ABC):
     possible_ids = {}
 
     def __init__(self, definition, forge):
+        # TODO: add registration to em.nexus.connector.Connector and use that instead of using
+        # kgforge methods directly
         self._definition = definition
         self._forge = forge
         self._resource = self._create_resource()
 
     @property
     def definition(self):
+        """Adds defaults to the given definition and wraps the items in Nexus format."""
         refined = self._format_attributes(self._definition)
         refined = self._wrap_fields_with_ids(refined)
         return self._with_defaults(refined)
 
     @property
     def resource(self):
+        """Access the resource."""
         return self._resource
 
     @property
     def type(self):
+        """Return the Nexus type of the resource."""
         return self._definition["type"]
 
     def register(self):
+        """Register the resource in Nexus."""
         if existing := self._find_existing():
             raise RuntimeError(
                 f"Similar '{self.type}' definition already exists in project "
@@ -78,16 +87,15 @@ class Resource(ABC):
             if self.resource._last_action.succeeded:
                 return
 
-            # TODO: debug
-            # ValueError: Object of type datetime is not JSON serializable
-            # w/ startedAtTime & endedAtTime
             raise RuntimeError(self.resource._last_action.message)
 
     def _check_required(self):
+        """Check that the required items are defined."""
         missing = self.required - set(self._definition)
         assert not missing, f"Missing attributes: {missing}"
 
     def _create_resource(self):
+        """Create a kgforge Resource of the definition."""
         self._check_required()
         return kgforge.core.Resource.from_json(self.definition)
 
@@ -96,7 +104,8 @@ class Resource(ABC):
         """If needed, format certain values in the definition."""
 
     def _find_existing(self):
-        found = self._forge.search({"type": self.type})
+        """Find resource matching the definition in Nexus."""
+        found = self._forge.search({"type": self.type}, cross_bucket=True)
         for r in found:
             if self._is_equal(r):
                 return r
@@ -108,10 +117,12 @@ class Resource(ABC):
         """Implements checking if the definition is equal to a nexus resource."""
 
     def _with_defaults(self, definition):
+        """Add default values to definiton."""
         defaults = em.utils.get_default_params(self.type)
         return dict(defaults, **definition)
 
     def _wrap_fields_with_ids(self, definition):
+        """Wrap attributes that contain IDs into objects."""
         patch = {}
         for field in self.possible_ids:
             value = definition.get(field)

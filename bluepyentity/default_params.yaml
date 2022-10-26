@@ -8,7 +8,7 @@ DetailedCircuit:
   name: null
   description: null
   subject: null # needs to be decided
-  brain_location: null # needs to be decided
+  brainLocation: null # needs to be decided
   wasGeneratedBy: null # a single item
   # the following is only found in published data:
   atlasRelease: null # should point to the atlas release item?
@@ -23,7 +23,7 @@ DetailedCircuit:
   # target
 
 # SIMULATION
-#
+
 Simulation:
   type: Simulation
   used: null # Detailed circuit used to run the simulation
@@ -38,19 +38,34 @@ Simulation:
 
 # ANALYSIS
 
+# Do we wish to register all the data here or just the Reports (AnalysisReport /DetailedCircuitValidationReport)
+
 Analysis: # Describes the activity
   type: Analysis
   name: null
-  status: null # Done / Pending / ?
+  status: null # Done / Pending / Running / Failed
   startedAtTime: null
   endedAtTime: null
-  used: null # list of items used (at least AnalysisConfiguration)
+  used: null # list of items used (at least AnalysisConfiguration, AnalysisReport)
 
 AnalysisReport: # the actual analysis report
-    type: AnalysisReport
-    distribution: null # image of the report as an uploaded DataDownload report
-    description: null
-    wasGeneratedBy: null # Analysis item that resulted in the report
+  name: ''
+  description: ''
+  type: AnalysisReport
+  distribution: null # image of the report as an uploaded DataDownload report
+  description: null
+  wasGeneratedBy: null # Analysis item that resulted in the report
+
+DetailedCircuitValidation: # same as Analysis
+  type: DetailedCircuitValidation
+
+DetailedCircuitValidationReport: # same as AnalysisReport
+  type: DetailedCircuitValidationReport
+
+CampaignAnalysis: # describes the activity
+  used: null # list of VariableReports
+  generated: null # id of an AnalysisReport
+  wasInformedBy: null # id to SimulationCampaign
 
 # NOTE:
 # Rest of the file is more of collection of entity definitions and not meant to be used as is
