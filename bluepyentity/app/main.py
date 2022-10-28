@@ -16,10 +16,11 @@ USER = getpass.getuser()
 })
 @click.version_option()
 @click.option("-v", "--verbose", count=True, help="Multiple increases logging level")
+@click.option('--bucket', type=str, default='bbp/atlas')
 @click.option("--env", type=str, default="prod", help="Name of the enviroment to use")
 @click.option("--user", type=str, default=USER, help="User to login as")
 @click.pass_context
-def main(ctx, verbose, env, user):
+def main(ctx, verbose, env, user, bucket):
     """The CLI object."""
     logging.basicConfig(
         level=(logging.WARNING, logging.INFO, logging.DEBUG)[min(verbose, 2)],
@@ -29,3 +30,5 @@ def main(ctx, verbose, env, user):
 
     ctx.meta['user'] = user
     ctx.meta['env'] = env
+    ctx.meta['bucket'] = bucket
+
