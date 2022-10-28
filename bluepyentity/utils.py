@@ -16,25 +16,14 @@ DEFAULT_PARAMS_PATH = pkg_resources.resource_filename(__name__, "default_params.
 
 
 class NoDatesSafeLoader(yaml.SafeLoader):
-    """Safeloader to remove date and time conversion to objects.
+    """SafeLoader without timestamp resolution.
 
-    From https://stackoverflow.com/questions/34667108/ignore-dates-and-times-while-parsing-yaml.
-    """
-    # TODO: See if there's a better way to do this
-
-    @classmethod
-    def remove_date_resolver(cls):
-        """Remove date resolvers."""
-        if "yaml_implicit_resolvers" not in cls.__dict__:
-            cls.yaml_implicit_resolvers = cls.yaml_implicit_resolvers.copy()
-
-        for first_letter, mappings in cls.yaml_implicit_resolvers.items():
-            cls.yaml_implicit_resolvers[first_letter] = [
-                (tag, regexp) for tag, regexp in mappings if tag != "tag:yaml.org,2002:timestamp"
-            ]
-
-
-NoDatesSafeLoader.remove_date_resolver()
+    Modified from:
+    https://stackoverflow.com/questions/34667108/ignore-dates-and-times-while-parsing-yaml
+        """
+    yaml_implicit_resolvers = {
+        key: list(filter(lambda tag_re: tag_re[0] != "tag:yaml.org,2002:timestamp", mappings))
+        for key, mappings in yaml.SafeLoader.yaml_implicit_resolvers.items()}
 
 
 FILE_PARSERS = {
