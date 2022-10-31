@@ -22,8 +22,9 @@ class NoDatesSafeLoader(yaml.SafeLoader):
     https://stackoverflow.com/questions/34667108/ignore-dates-and-times-while-parsing-yaml
         """
     yaml_implicit_resolvers = {
-        key: list(filter(lambda tag_re: tag_re[0] != "tag:yaml.org,2002:timestamp", mappings))
-        for key, mappings in yaml.SafeLoader.yaml_implicit_resolvers.items()}
+        key: [(tag, regex) for tag, regex in mappings if tag != "tag:yaml.org,2002:timestamp"]
+        for key, mappings in yaml.SafeLoader.yaml_implicit_resolvers.items()
+    }
 
 
 FILE_PARSERS = {
