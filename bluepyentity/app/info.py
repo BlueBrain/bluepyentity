@@ -53,15 +53,15 @@ def extra_print(cons, store_metadata):
 @click.command()
 @click.option('--metadata', type=bool, default=False)
 @click.option('--raw-resource', type=bool, default=False)
-@click.option('--bucket', type=str, default='bbp/atlas')
 @click.argument('id_')
 @click.pass_context
-def info(ctx, id_, metadata, raw_resource, bucket):
+def info(ctx, id_, metadata, raw_resource):
     """get info on ID_ from NEXUS"""
     cons = console.Console()
 
     user = ctx.meta['user']
     env = ctx.meta['env']
+    bucket = ctx.meta['bucket']
 
     token = bluepyentity.token.get_token(env=env, username=user)
     forge = bluepyentity.environments.create_forge(env, token, bucket)
