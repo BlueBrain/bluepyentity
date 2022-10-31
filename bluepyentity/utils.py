@@ -1,4 +1,11 @@
+'''utilities'''
+
+import getpass
+import sys
+import termios
+
 from collections import OrderedDict
+
 
 def visit_container(container, func, dict_func=None):
     def visit(c):
@@ -23,3 +30,40 @@ def visit_container(container, func, dict_func=None):
 
 def ordered2dict(data):
     return visit_container(data, lambda x: x)
+
+
+def _in_ipynb():
+    '''see if we are in an ipython notebook'''
+    try:
+        return 'ZMQInteractiveShell' in str(get_ipython())
+    except NameError:
+        return False
+
+
+def get_token(prompt='Token: '):
+    '''works around console linux console to be able to get large tokens
+
+    see: https://github.com/python/cpython/issues/89674
+    '''
+    if sys.platform != "linux" and sys.platform != "linux2" or _in_ipynb():
+        return getpass.getpass(prompt=prompt)
+
+    # combination of Lib/unix_getpass and
+    # https://github.com/python/cpython/issues/89674
+    stream = sys.stdin
+    fd = stream.fileno()
+    old = termios.tcgetattr(fd)
+    new = old[:]
+    new[3] &= ~termios.ICANON  # 3 == 'lflags'
+    tcsetattr_flags = termios.TCSAFLUSH
+    if hasattr(termios, 'TCSASOFT'):
+        tcsetattr_flags |= termios.TCSASOFT
+
+    try:
+        termios.tcsetattr(fd, tcsetattr_flags, new)
+        passwd = getpass.getpass(prompt=prompt)
+    finally:
+        termios.tcsetattr(fd, tcsetattr_flags, old)
+        stream.flush()  # issue7208
+
+    return passwd
