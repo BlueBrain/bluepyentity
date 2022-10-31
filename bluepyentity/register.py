@@ -18,7 +18,7 @@ def _is_url(item):
     return isinstance(item, str) and RE_URL.match(item)
 
 
-def _wrap_file_path(path):
+def _wrap_linked_file_path(path):
     """Wraps path as file URI if not already wrapped"""
     return RE_NOT_FILE_URI.sub(FILE_URI, path)
 
@@ -61,6 +61,7 @@ class Resource(ABC):
         """Adds defaults to the given definition and wraps the items in Nexus format."""
         refined = self._format_attributes(self._definition)
         refined = self._wrap_fields_with_ids(refined)
+        refined.pop("upload", None)
         return self._with_defaults(refined)
 
     @property
@@ -89,6 +90,10 @@ class Resource(ABC):
 
             raise RuntimeError(self.resource._last_action.message)
 
+    def _get_distribution(self):
+        """Create a distribution of files to be uploaded."""
+        return [self._forge.attach(path) for path in self._definition.get("upload", [])]
+
     def _check_required(self):
         """Check that the required items are defined."""
         missing = self.required - set(self._definition)
@@ -97,7 +102,12 @@ class Resource(ABC):
     def _create_resource(self):
         """Create a kgforge Resource of the definition."""
         self._check_required()
-        return kgforge.core.Resource.from_json(self.definition)
+        resource = kgforge.core.Resource.from_json(self.definition)
+
+        if distribution := self._get_distribution():
+            setattr(resource, "distribution", distribution)
+
+        return resource
 
     @abstractmethod
     def _format_attributes(self, definition):
@@ -147,7 +157,10 @@ class DetailedCircuit(Resource):
 
         # NOTE: Does it need to be DataDownload, can it be just a URL as a string?
         if isinstance(path, str):
-            patch["circuitConfigPath"] = {"type": "DataDownload", "url": _wrap_file_path(path)}
+            patch["circuitConfigPath"] = {
+                "type": "DataDownload",
+                "url": _wrap_linked_file_path(path),
+            }
 
         return dict(definition, **patch)
 
@@ -170,7 +183,10 @@ class Simulation(Resource):
         path = definition["simulationConfigPath"]
 
         if isinstance(path, str):
-            patch["simulationConfigPath"] = {"type": "DataDownload", "url": _wrap_file_path(path)}
+            patch["simulationConfigPath"] = {
+                "type": "DataDownload",
+                "url": _wrap_linked_file_path(path),
+            }
 
         return dict(definition, **patch)
 
