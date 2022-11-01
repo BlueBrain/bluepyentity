@@ -1,9 +1,6 @@
 type: DetailedCircuit
 #id: https://bbp.epfl.ch/nexus/v1/resources/nse/test2/_/9be40e75-8744-415b-b0b4-e4074ff54a8f
-brain_location:
-    brain_region:
-      url: http://api.brain-map.org/api/v2/data/Structure/549
-      label: Thalamus
+brainRegion: http://api.brain-map.org/api/v2/data/Structure/549
 name: Test Circuit registration
 description: Test registration, to be deprecated
 circuitType: Test registration

@@ -61,7 +61,11 @@ class Resource(ABC):
         """Adds defaults to the given definition and wraps the items in Nexus format."""
         refined = self._format_attributes(self._definition)
         refined = self._wrap_fields_with_ids(refined)
+
+        # Fields to not store in Nexus
         refined.pop("upload", None)
+        refined.pop("brainRegion", None)
+
         return self._with_defaults(refined)
 
     @property
@@ -160,6 +164,16 @@ class DetailedCircuit(Resource):
             patch["circuitConfigPath"] = {
                 "type": "DataDownload",
                 "url": _wrap_linked_file_path(path),
+            }
+
+        # NOTE: perhaps better to do this lookup when creating the resource
+        # Define brainLocation as suggested in DKE-1062
+        if brain_region := definition.get("brainRegion"):
+            brain_region = self._forge.retrieve(brain_region, cross_bucket=True)
+            brain_region = self._forge.reshape(brain_region, ["id", "label"])
+            patch["brainLocation"] = {
+                "type": "BrainLocation",
+                "brainRegion": self._forge.as_json(brain_region),
             }
 
         return dict(definition, **patch)
