@@ -173,7 +173,7 @@ class DetailedCircuit(Resource):
             brain_region = self._forge.reshape(brain_region, ["id", "label"])
             patch["brainLocation"] = {
                 "type": "BrainLocation",
-                "brainRegion": self._forge.as_json(brain_region),
+                "brainRegion": brain_region,
             }
 
         return dict(definition, **patch)
