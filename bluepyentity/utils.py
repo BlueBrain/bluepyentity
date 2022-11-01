@@ -120,12 +120,11 @@ def parse_dict_from_file(path):
     Returns:
         dict: file parsed as a dictionary.
     """
-    suffix = Path(path).suffix.lower()
-    if suffix not in FILE_PARSERS:
+    path = Path(path)
+    if (suffix := path.suffix.lower()) not in FILE_PARSERS:
         raise RuntimeError(f"unknown file format: {suffix}")
 
-    with open(path, "r", encoding="utf-8") as fd:
-        return FILE_PARSERS[suffix](fd)
+    return FILE_PARSERS[suffix](path.read_bytes())
 
 
 def get_default_params(type_):
