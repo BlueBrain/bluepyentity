@@ -31,16 +31,14 @@ def _wrap_id(id_, type_):
 def _wrap_id_fetch(id_, forge):
     """Find items with given IDs in Nexus and wrap them as objects."""
     if _is_url(id_):
-        nexus_resource = forge.retrieve(id_, cross_bucket=True)
-
-        if nexus_resource is not None:
-            return _wrap_id(id_, nexus_resource.type)
+        try:
+            return _wrap_id(id_, forge.retrieve(id_, cross_bucket=True).type)
+        except kgforge.core.commons.exceptions.RetrievalError as e:
+            # TODO: decide on action to take
+            L.warning(e.args[0])
     elif isinstance(id_, list):
         return [_wrap_id_fetch(i, forge) for i in id_]
 
-    # TODO: decide on action, if resource is not found:
-    # - no wrapping, return as is
-    # - raise exception - stricter
     return id_
 
 
@@ -89,6 +87,7 @@ class Resource(ABC):
             with em.utils.silence_stdout():
                 self._forge.register(self.resource)
 
+            # KnowledgeGraphForge(debug=True) does not make register raise (see: DKE-1065)
             if self.resource._last_action.succeeded:
                 return
 
@@ -230,6 +229,8 @@ def register(token, resource_def):
         project (str): target ORGANIZATION/PROJECT.
     """
     forge = em.environments.create_forge("prod", token, bucket="nse/test2")
+    # Should be added to the environments.py but using this here for now to not break anything
+    forge._debug = True
 
     resource_dict = em.utils.parse_dict_from_file(resource_def)
     res_type = resource_dict.get("type", None)
