@@ -86,8 +86,8 @@ class Resource(ABC):
                 f"'{self._forge._store.bucket}' with an id of: '{existing.id}'"
             )
         else:
-            # TODO: how to silence forge's output?
-            self._forge.register(self.resource)
+            with em.utils.silence_stdout():
+                self._forge.register(self.resource)
 
             if self.resource._last_action.succeeded:
                 return

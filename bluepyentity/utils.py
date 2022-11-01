@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 """useful utilities"""
+import contextlib
 import getpass
+import io
 import json
 import sys
 import termios
@@ -20,7 +22,8 @@ class NoDatesSafeLoader(yaml.SafeLoader):
 
     Modified from:
     https://stackoverflow.com/questions/34667108/ignore-dates-and-times-while-parsing-yaml
-        """
+    """
+
     yaml_implicit_resolvers = {
         key: [(tag, regex) for tag, regex in mappings if tag != "tag:yaml.org,2002:timestamp"]
         for key, mappings in yaml.SafeLoader.yaml_implicit_resolvers.items()
@@ -109,6 +112,13 @@ def get_secret(prompt):
         stream.flush()  # issue7208
 
     return passwd
+
+
+@contextlib.contextmanager
+def silence_stdout():
+    """STDOUT is silver, silence is golden."""
+    with contextlib.redirect_stdout(io.StringIO()):
+        yield
 
 
 def parse_dict_from_file(path):
