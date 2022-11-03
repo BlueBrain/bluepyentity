@@ -38,7 +38,7 @@ def set_token(env, username=None, token=None):
 def get_token(env, username=None):
     if 'NEXUS_TOKEN' in os.environ:
         if not is_valid(os.environ['NEXUS_TOKEN']):
-            L.error('NEXUS_TOKEN in the environment is not valid')
+            L.error('NEXUS_TOKEN in the env is not valid, either set a working one or remove it')
         return os.environ['NEXUS_TOKEN']
 
     username = _getuser(username)
@@ -64,4 +64,3 @@ def is_valid(token):
     return ('exp' in info and
             datetime.datetime.now() < datetime.datetime.fromtimestamp(info['exp'])
             )
-

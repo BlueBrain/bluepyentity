@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import click
 from rich import pretty
 
@@ -34,3 +36,5 @@ def decode(ctx):
     tok = bluepyentity.token.get_token(env=env, username=user)
     info = bluepyentity.token.decode(tok)
     pretty.pprint(info)
+    expiry = datetime.fromtimestamp(info['exp'])
+    pretty.pprint(f"Token expires at {expiry} ({expiry - datetime.now()} from now)")

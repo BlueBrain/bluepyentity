@@ -32,7 +32,7 @@ def ordered2dict(data):
     return visit_container(data, lambda x: x)
 
 
-def _in_ipynb():
+def _in_ipython_notebook():
     '''see if we are in an ipython notebook'''
     try:
         return 'ZMQInteractiveShell' in str(get_ipython())
@@ -41,11 +41,15 @@ def _in_ipynb():
 
 
 def get_token(prompt='Token: '):
-    '''works around console linux console to be able to get large tokens
+    '''works around console `features` to be able to get large tokens
+
+    empircally, linux only returns up to 4095 characters in `canonical` mode,
+    and macOS seems to do ~1023.
 
     see: https://github.com/python/cpython/issues/89674
     '''
-    if sys.platform != "linux" and sys.platform != "linux2" or _in_ipynb():
+
+    if _in_ipython_notebook() or sys.platform not in ("linux", "linux2", "darwin"):
         return getpass.getpass(prompt=prompt)
 
     # combination of Lib/unix_getpass and
