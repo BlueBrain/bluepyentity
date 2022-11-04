@@ -34,8 +34,7 @@ setup(
         [console_scripts]
         bluepyentity=bluepyentity.app.main:main
     """,
-    install_requires=
-    [
+    install_requires=[
         "click",
         "keyring",
         "lazy-object-proxy>=1.5.2,<2.0.0",

@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+
 def visit_container(container, func, dict_func=None):
     def visit(c):
         if isinstance(c, tuple):
@@ -18,6 +19,7 @@ def visit_container(container, func, dict_func=None):
         elif isinstance(c, set):
             return {visit(v) for v in c}
         return func(c)
+
     return visit(container)
 
 

@@ -1,23 +1,25 @@
 import getpass
 import logging
+
 import click
 
 from bluepyentity.app import download, info, project, token
 from bluepyentity.version import VERSION
 
-
 USER = getpass.getuser()
 
 
-@click.group(commands={
-    'download': download.download,
-    'info': info.info,
-    'token': token.app,
-    'project': project.app,
-})
+@click.group(
+    commands={
+        "download": download.download,
+        "info": info.info,
+        "token": token.app,
+        "project": project.app,
+    }
+)
 @click.version_option()
 @click.option("-v", "--verbose", count=True, help="Multiple increases logging level")
-@click.option('--bucket', type=str, default='bbp/atlas')
+@click.option("--bucket", type=str, default="bbp/atlas")
 @click.option("--env", type=str, default="prod", help="Name of the enviroment to use")
 @click.option("--user", type=str, default=USER, help="User to login as")
 @click.pass_context
@@ -29,7 +31,6 @@ def main(ctx, verbose, env, user, bucket):
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    ctx.meta['user'] = user
-    ctx.meta['env'] = env
-    ctx.meta['bucket'] = bucket
-
+    ctx.meta["user"] = user
+    ctx.meta["env"] = env
+    ctx.meta["bucket"] = bucket
