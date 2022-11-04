@@ -1,7 +1,15 @@
+"""useful utilities"""
 from collections import OrderedDict
 
 
 def visit_container(container, func, dict_func=None):
+    """recursively visit a container
+
+    Applies `func` to each non-container element
+    if `dict_func` is specified, dictionaries are processed using it and
+    return None drops a particular key
+    """
+
     def visit(c):
         if isinstance(c, tuple):
             return tuple(visit(val) for val in c)
@@ -24,4 +32,8 @@ def visit_container(container, func, dict_func=None):
 
 
 def ordered2dict(data):
+    """convert all `OrderedDict` in data to normal `dict`
+
+    helper to work around the nexus_python_sdk==0.3.2
+    """
     return visit_container(data, lambda x: x)

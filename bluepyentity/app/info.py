@@ -1,17 +1,18 @@
+"""info CLI entry point"""
 import sys
 
 import click
-from rich import console, pretty, text
+import dateutil
+from rich import console, pretty
+from rich.rule import Rule
 
 import bluepyentity
 from bluepyentity import utils
 
 
-def extra_print(cons, store_metadata):
-    import dateutil
-    from rich.rule import Rule
-    from rich.text import Text
-
+def _extra_print(cons, store_metadata):
+    """pretty print extra info"""
+    # pylint: disable=line-too-long
     contents = [
         Rule(),
     ]
@@ -46,7 +47,7 @@ def extra_print(cons, store_metadata):
 @click.argument("id_")
 @click.pass_context
 def info(ctx, id_, metadata, raw_resource):
-    """get info on ID_ from NEXUS"""
+    """get info on `id` from NEXUS"""
     cons = console.Console()
 
     user = ctx.meta["user"]
@@ -62,7 +63,7 @@ def info(ctx, id_, metadata, raw_resource):
         cons.print(f"[red]Unable to find a resource with id: {id_}")
         sys.exit(-1)
 
-    store_metadata = resource._store_metadata
+    store_metadata = resource._store_metadata  # pylint: disable=protected-access
     rtype = type(resource)
     data = vars(resource)
 
@@ -71,10 +72,10 @@ def info(ctx, id_, metadata, raw_resource):
 
     if not raw_resource:
 
-        def pretty_resource(res):
+        def _pretty_resource(res):
             if not isinstance(res, rtype):
                 return res
-            utils.visit_container(vars(res), pretty_resource)
+            utils.visit_container(vars(res), _pretty_resource)
 
             def __rich_repr__():
                 for k, v in vars(res).items():
@@ -85,9 +86,8 @@ def info(ctx, id_, metadata, raw_resource):
             res.__rich_repr__ = __rich_repr__
             return res
 
-        data = utils.visit_container(data, pretty_resource)
+        data = utils.visit_container(data, _pretty_resource)
 
-    if 1 or add_rev:
-        extra_print(cons, store_metadata)
+    _extra_print(cons, store_metadata)
 
     pretty.pprint(data, console=cons)

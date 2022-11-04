@@ -1,3 +1,4 @@
+"""download cli entry point"""
 import click
 
 import bluepyentity
@@ -7,7 +8,7 @@ import bluepyentity
 @click.argument("id_")
 @click.pass_context
 def download(ctx, id_):
-    """Download ID_ from NEXUS"""
+    """Download `id` from NEXUS"""
     user = ctx.meta["user"]
     env = ctx.meta["env"]
     bucket = ctx.meta["bucket"]

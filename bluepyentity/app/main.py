@@ -1,3 +1,4 @@
+"""main CLI entry point"""
 import getpass
 import logging
 
@@ -17,7 +18,7 @@ USER = getpass.getuser()
         "project": project.app,
     }
 )
-@click.version_option()
+@click.version_option(version=VERSION)
 @click.option("-v", "--verbose", count=True, help="Multiple increases logging level")
 @click.option("--bucket", type=str, default="bbp/atlas")
 @click.option("--env", type=str, default="prod", help="Name of the enviroment to use")

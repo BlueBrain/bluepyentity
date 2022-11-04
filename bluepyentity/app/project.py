@@ -1,7 +1,6 @@
-import sys
-
+"""info CLI entry point"""
 import click
-from rich import console, pretty, rule, text
+from rich import console, pretty, rule
 
 import bluepyentity
 from bluepyentity import utils
@@ -16,6 +15,7 @@ def app():
 @click.argument("project")
 @click.pass_context
 def resolvers(ctx, project):
+    """print resolvers associated with a project"""
     cons = console.Console()
     user = ctx.meta["user"]
     env = ctx.meta["env"]
