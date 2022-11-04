@@ -26,9 +26,9 @@ def set_token(env, username=None, token=None):
     username = _getuser(username)
 
     if token is None:
-        token = bluepyentity.utils.get_token()
+        token = bluepyentity.utils.get_secret(prompt='Token: ')
 
-    if not token or not is_valid(token):
+    if not is_valid(token):
         L.error("Setting the token failed. the length was %d", len(token))
         return
 
@@ -45,7 +45,7 @@ def get_token(env, username=None):
 
     token = keyring.get_password(_token_name(env), username)
 
-    if not token or not is_valid(token):
+    if not is_valid(token):
         set_token(env='prod', username=username)
 
     return token
@@ -56,9 +56,12 @@ def decode(token):
 
 
 def is_valid(token):
+    if not token:
+        return False
+
     try:
         info = decode(token)
-    except:
+    except jwt.DecodeError:
         return False
 
     return ('exp' in info and
