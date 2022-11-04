@@ -131,7 +131,9 @@ def parse_dict_from_file(path):
         dict: file parsed as a dictionary.
     """
     path = Path(path)
-    if (suffix := path.suffix.lower()) not in FILE_PARSERS:
+    suffix = path.suffix.lower()
+
+    if suffix not in FILE_PARSERS:
         raise RuntimeError(f"unknown file format: {suffix}")
 
     return FILE_PARSERS[suffix](path.read_bytes())
@@ -149,24 +151,21 @@ def get_default_params(type_):
 
 
 def traverse_attributes(item, path):
-    """Get item attribute based on given attribute path.
+    """Traverse item's attributes based on given attribute path.
 
     Args:
-        item (dict, object): Item to traverse.
+        item (object): Object to traverse.
         path (Iterable): Attribute path.
 
     Returns:
         Any,NoneType: Requested attribute, None if doesn't exist.
 
     Examples:
-        >>> A = {'a': {'b': {'c': 'd'}}}
-        ... forgiving_getter(dictionary, ['a', 'b', 'c'])  # Returns: 'd'
-        ... forgiving_getter(dictionary, ['a', 'b', 'x'])  # Returns: None
+        >>> resource = kgforge.core.Resource.from_json({'a': {'b': {'c': 'd'}}})
+        ... traverse_attributes(resource, ['a', 'b', 'c'])  # Returns: 'd'
+        ... traverse_attributes(resource, ['a', 'b', 'x'])  # Returns: None
     """
-    if not path:
+    if not path or item is None:
         return item
 
-    if hasattr(item, path[0]):
-        return traverse_attributes(getattr(item, path[0]), path[1:])
-
-    return None
+    return traverse_attributes(getattr(item, path[0], None), path[1:])
