@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 import logging
 import os
 from unittest.mock import MagicMock

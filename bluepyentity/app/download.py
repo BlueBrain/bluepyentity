@@ -1,4 +1,7 @@
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """download cli entry point"""
+
 import click
 
 import bluepyentity

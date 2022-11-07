@@ -1,4 +1,7 @@
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """info CLI entry point"""
+
 import click
 from rich import console, pretty, rule
 

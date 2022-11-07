@@ -1,4 +1,7 @@
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """main CLI entry point"""
+
 import getpass
 import logging
 

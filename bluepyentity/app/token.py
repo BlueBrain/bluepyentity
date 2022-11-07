@@ -1,4 +1,7 @@
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """token CLI entry point"""
+
 import click
 from rich import pretty
 
