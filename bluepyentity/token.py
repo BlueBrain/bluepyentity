@@ -9,7 +9,6 @@ import keyring
 
 import bluepyentity.utils
 
-
 L = logging.getLogger(__name__)
 
 
@@ -31,7 +30,7 @@ def set_token(env, username=None, token=None):
     username = _getuser(username)
 
     if token is None:
-        token = bluepyentity.utils.get_secret(prompt='Token: ')
+        token = bluepyentity.utils.get_secret(prompt="Token: ")
 
     if not is_valid(token):
         L.error("Setting the token failed. the length was %d", len(token))
@@ -47,10 +46,10 @@ def get_token(env, username=None):
     * then from the `keyring`
     * finally, interactively
     """
-    if 'NEXUS_TOKEN' in os.environ:
-        if not is_valid(os.environ['NEXUS_TOKEN']):
-            L.error('NEXUS_TOKEN in the env is not valid, either set a working one or remove it')
-        return os.environ['NEXUS_TOKEN']
+    if "NEXUS_TOKEN" in os.environ:
+        if not is_valid(os.environ["NEXUS_TOKEN"]):
+            L.error("NEXUS_TOKEN in the env is not valid, either set a working one or remove it")
+        return os.environ["NEXUS_TOKEN"]
 
     username = _getuser(username)
 
@@ -58,22 +57,21 @@ def get_token(env, username=None):
 
     if not is_valid(token):
         set_token(env=env, username=username)
-    info = decode(token)
 
     return token
 
 
 def decode(token):
     """decode the token, and return its contents"""
-    return jwt.decode(token, options={'verify_signature': False})
+    return jwt.decode(token, options={"verify_signature": False})
 
 
 def is_valid(token):
-    '''check if token is valid
+    """check if token is valid
 
     * if it decodes properly
     * if it has expired
-    '''
+    """
     if not token:
         return False
 
@@ -82,6 +80,4 @@ def is_valid(token):
     except jwt.DecodeError:
         return False
 
-    return ('exp' in info and
-            datetime.datetime.now() < datetime.datetime.fromtimestamp(info['exp'])
-            )
+    return "exp" in info and datetime.datetime.now() < datetime.datetime.fromtimestamp(info["exp"])

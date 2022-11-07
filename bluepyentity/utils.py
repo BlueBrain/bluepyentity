@@ -1,9 +1,7 @@
 """useful utilities"""
-
 import getpass
 import sys
 import termios
-
 from collections import OrderedDict
 
 
@@ -45,22 +43,21 @@ def ordered2dict(data):
 
 
 def _in_ipython_notebook():
-    '''see if we are in an ipython notebook'''
+    """see if we are in an ipython notebook"""
     try:
-        return 'ZMQInteractiveShell' in str(get_ipython())
+        return "ZMQInteractiveShell" in str(get_ipython())
     except NameError:
         return False
 
 
 def get_secret(prompt):
-    '''works around console `features` to be able to get large tokens
+    """works around console `features` to be able to get large tokens
 
     Empircally, linux only returns up to 4095 characters in `canonical` mode,
     and macOS seems to do ~1023.
 
     see: https://github.com/python/cpython/issues/89674
-    '''
-
+    """
     if _in_ipython_notebook() or sys.platform not in ("linux", "linux2", "darwin"):
         return getpass.getpass(prompt=prompt)
 
@@ -72,7 +69,7 @@ def get_secret(prompt):
     new = old[:]
     new[3] &= ~termios.ICANON  # 3 == 'lflags'
     tcsetattr_flags = termios.TCSAFLUSH
-    if hasattr(termios, 'TCSASOFT'):
+    if hasattr(termios, "TCSASOFT"):
         tcsetattr_flags |= termios.TCSASOFT
 
     try:
