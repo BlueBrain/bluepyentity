@@ -16,12 +16,12 @@ From PyPi:
    pip install bluepyentity
 
 
-Examples: Command Line Interaction
+Usage and examples: Command Line Interaction
 ----------------------------------
 
 
 Token:
-------
+~~~~~~
 
 Using the `keyring`_, a NEXUS token can be stored to reduce the number of required authentication steps:
 
@@ -47,7 +47,7 @@ One can get the token with (note that this can be piped to other apps that need 
     token=`bluepyentity token get`
 
 Info:
------
+~~~~~
 
 One can look at the associated information of an identifier with:
 

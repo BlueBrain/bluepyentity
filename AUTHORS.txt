@@ -1,0 +1,15 @@
+Maintainer
+----------
+* BBP/NSE
+
+Authors
+-------
+* Gianluca Ficarelli
+* Joni Herttuainen
+* Mike Gevaert
+* Tanguy Damart
+* Zisis Eleftherios
+
+Contributors
+------------
+
