@@ -1,9 +1,10 @@
+"""token handling"""
 import datetime
 import getpass
 import os
 
-import keyring
 import jwt
+import keyring
 
 
 def _getuser(username=None):
@@ -11,43 +12,47 @@ def _getuser(username=None):
         username = getpass.getuser()
     return username
 
-def _getpass():
-    from rich.prompt import Prompt
-    token = Prompt.ask("Token", password=True)
-    return token
-
 
 def _token_name(env):
-    return f'kgforge:{env}'
+    return f"kgforge:{env}"
 
 
 def set_token(env, username=None, token=None):
+    """set the token for the username and environment
+
+    if `token` is none, it is asked for interactively
+    """
     username = _getuser(username)
 
     if token is None:
-        token = _getpass()
+        token = getpass.getpass()
 
     keyring.set_password(_token_name(env), username, token)
 
 
 def get_token(env, username=None):
-    if 'NEXUS_TOKEN' in os.environ:
-        return os.environ['NEXUS_TOKEN']
+    """try and get the token
+
+    * First from the NEXUS_TOKEN environment variable
+    * then from the `keyring`
+    * finally, interactively
+    """
+    if "NEXUS_TOKEN" in os.environ:
+        return os.environ["NEXUS_TOKEN"]
 
     username = _getuser(username)
 
     token = keyring.get_password(_token_name(env), username)
 
     info = decode(token)
-    valid = ('exp' in info and
-             datetime.datetime.now() < datetime.datetime.fromtimestamp(info['exp'])
-             )
+    valid = "exp" in info and datetime.datetime.now() < datetime.datetime.fromtimestamp(info["exp"])
 
     if not token or not valid:
-        set_token(env='prod', username=username)
+        set_token(env="prod", username=username)
 
     return token
 
 
 def decode(token):
-    return jwt.decode(token, options={'verify_signature': False})
+    """decode the token, and return its contents"""
+    return jwt.decode(token, options={"verify_signature": False})

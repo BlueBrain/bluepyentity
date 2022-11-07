@@ -21,6 +21,8 @@
 # config, which gets added then deprecated in Nexus, according to Tanguy. Once it's not PoC, then we
 # can integrate it.
 
+# pylint: disable=import-outside-toplevel
+
 import logging
 import os
 import subprocess
