@@ -33,7 +33,7 @@ def set_token(env, username=None, token=None):
         token = bluepyentity.utils.get_secret(prompt="Token: ")
 
     if not is_valid(token):
-        L.error("Setting the token failed. the length was %d", len(token))
+        L.error("The token could not be decoded or has expired. the length was %d", len(token))
         return
 
     keyring.set_password(_token_name(env), username, token)

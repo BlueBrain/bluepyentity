@@ -53,7 +53,7 @@ def _in_ipython_notebook():
 def get_secret(prompt):
     """works around console `features` to be able to get large tokens
 
-    Empircally, linux only returns up to 4095 characters in `canonical` mode,
+    Empirically, linux only returns up to 4095 characters in `canonical` mode,
     and macOS seems to do ~1023.
 
     see: https://github.com/python/cpython/issues/89674
