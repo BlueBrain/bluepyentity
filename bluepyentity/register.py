@@ -119,7 +119,6 @@ class Resource(ABC):
     def _find_existing(self):
         """Find resource matching the definition in Nexus."""
         found = self._forge.search({"type": self.type}, cross_bucket=True)
-        __import__('pdb').set_trace()
         for r in found:
             if self._is_equal(r):
                 return r
