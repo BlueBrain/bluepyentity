@@ -1,3 +1,4 @@
+import sys
 import logging
 import re
 from abc import ABC, abstractmethod
@@ -11,6 +12,7 @@ L = logging.getLogger(__name__)
 FILE_URI = "file://"
 RE_URL = re.compile("^http(s)?://")
 RE_NOT_FILE_URI = re.compile(f"^(?!{FILE_URI})")
+MODULE = sys.modules[__name__]
 
 
 def _is_url(item):
@@ -93,10 +95,6 @@ class Resource(ABC):
 
             raise RuntimeError(self.resource._last_action.message)
 
-    def _get_distribution(self):
-        """Create a distribution of files to be uploaded."""
-        return [self._forge.attach(path) for path in self._definition.get("upload", [])]
-
     def _check_required(self):
         """Check that the required items are defined."""
         missing = self.required - set(self._definition)
@@ -125,9 +123,9 @@ class Resource(ABC):
 
         return None
 
-    @abstractmethod
     def _is_equal(self, resource):
         """Implements checking if the definition is equal to a nexus resource."""
+        return getattr(self.resource, "id", None) == resource.id
 
     def _with_defaults(self, definition):
         """Add default values to definiton."""
@@ -188,6 +186,7 @@ class DetailedCircuit(Resource):
 
 
 class Simulation(Resource):
+    # NOTE: If we have SimulationCampaigns, is this even needed?
     required = {"name", "simulationConfigPath"}
     possible_ids = {"used"}
 
@@ -210,12 +209,54 @@ class Simulation(Resource):
         return self.resource.simulationConfigPath.url == url
 
 
-class Analysis(Resource):
-    required = {}
-    # Need to verify what different formats are we registering here
-    # - Simulation / SimulationCampaign
-    # - Analysis Report
-    # - Circuit
+class AnalysisReport(Resource):
+    # New format of AnalysisReport like in:
+    # https://staging.nise.bbp.epfl.ch/nexus/v1/resources/bbp_test/studio_data_11/_/877ac166-779c-4926-9473-cca6bee0f50b
+    required = {"configuration"}
+
+    def _create_resource(self):
+        self._check_required()
+        definition = self.definition
+        configuration = self._forge.retrieve(definition.pop("configuration"), cross_bucket=True)
+        images = definition.pop("images", [])
+
+        # Needs to be Dataset, to be able to use add_files and have the same hasPart structure as the example
+        resource = kgforge.specializations.resources.Dataset.from_resource(
+            self._forge, kgforge.core.Resource.from_json(definition)
+        )
+
+        resource.add_derivation(configuration)
+
+        if not isinstance(images, list):
+            images = [images]
+
+        for path in images:
+            resource.add_files(path)
+
+        return resource
+
+    def _format_attributes(self, definition):
+        """Nothing to do currently."""
+
+        return definition
+
+
+class DetailedCircuitValidationReport(AnalysisReport):
+    # Currently the definition seems the same as for AnalysisReport
+    pass
+
+
+class SimulationCampaignConfiguration(Resource):
+    required = {"configuration", "template"}
+    possible_ids = {"wasGeneratedBy"}
+
+    def _format_attributes(self, definition):
+        patch = {}
+        for attr in ("configuration", "target", "template"):
+            if (path := definition.get(attr)) is not None:
+                patch[attr] = self._forge.attach(path)
+
+        return dict(definition, **patch)
 
 
 def register(token, resource_def):
@@ -235,14 +276,10 @@ def register(token, resource_def):
     resource_dict = em.utils.parse_dict_from_file(resource_def)
     res_type = resource_dict.get("type", None)
 
-    # TODO: initialize the classes dynamically
-    if res_type == "DetailedCircuit":
-        resource = DetailedCircuit(resource_dict, forge)
-    elif res_type == "Simulation":
-        resource = Simulation(resource_dict, forge)
+    if cls := getattr(MODULE, res_type, None):
+        resource = cls(resource_dict, forge)
     else:
         raise NotImplementedError(f"Unsupported type: '{res_type}'")
 
     resource.register()
-
     L.info(f"'{res_type}' successfully registered with id: '{resource.resource.id}'")
