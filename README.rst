@@ -3,8 +3,8 @@ bluepyentity
 
 NEXUS Productivity Layer, helps to:
 
-# access NEXUS through the command line interface
-# provide convenience functions to simplify common operations using NEXUS
+- access NEXUS through the command line interface
+- provide convenience functions to simplify common operations using NEXUS
 
 Installation
 ------------
