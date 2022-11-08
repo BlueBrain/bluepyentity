@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """token CLI entry point"""
 from datetime import datetime
 

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 from unittest.mock import patch
 
 import pandas as pd

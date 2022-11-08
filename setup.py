@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# SPDX-License-Identifier: LGPL-3.0-or-later
 
 import importlib.util
 import sys
