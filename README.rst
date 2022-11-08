@@ -17,7 +17,7 @@ From PyPi:
 
 
 Usage and examples: Command Line Interaction
-----------------------------------
+--------------------------------------------
 
 
 Token:
@@ -36,7 +36,7 @@ One can see the contents of the token with:
 
     bluepyentity token decode
 
-One can get the token with (note that this can be piped to other apps that need the token, or saved as an environment variable:
+One can get the token with (note that this can be piped to other apps that need the token, or saved as an environment variable):
 
 .. code-block:: bash
 
