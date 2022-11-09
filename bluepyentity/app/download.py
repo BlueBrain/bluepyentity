@@ -2,6 +2,7 @@
 import click
 
 import bluepyentity
+import bluepyentity.environments
 
 
 @click.command()
