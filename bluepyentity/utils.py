@@ -17,7 +17,7 @@ import yaml
 DEFAULT_PARAMS_PATH = pkg_resources.resource_filename(__name__, "default_params.yaml")
 
 
-class NoDatesSafeLoader(yaml.SafeLoader):
+class NoDatesSafeLoader(yaml.SafeLoader):  # pylint: disable=too-many-ancestors
     """SafeLoader without timestamp resolution.
 
     Modified from:
@@ -141,6 +141,7 @@ def parse_dict_from_file(path):
 
 def get_default_params(type_):
     """Get default parameters for given type.
+
     Args:
         type_ (str): type of resource
 

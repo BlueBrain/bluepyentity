@@ -1,11 +1,12 @@
-import sys
+"""Tools to register resources in Nexus."""
 import logging
 import re
+import sys
 from abc import ABC, abstractmethod
 
 import kgforge
 
-import bluepyentity as em
+from bluepyentity import environments, utils
 
 L = logging.getLogger(__name__)
 
@@ -46,11 +47,19 @@ def _wrap_id_fetch(id_, forge):
 
 # NOTE: Should this work with bluepyentity.nexus.entityEntity?
 class Resource(ABC):
+    """Base class for resources to register."""
+
     required = {}
     possible_ids = {}
 
     def __init__(self, definition, forge):
-        # TODO: add registration to em.nexus.connector.Connector and use that instead of using
+        """Resource initializer.
+
+        Args:
+            definition (dict): attributes and their values to register
+            forge (kgforge.core.KnowledgeGraphForge): nexus-forge instance
+        """
+        # TODO: add registration to nexus.connector.Connector and use that instead of using
         # kgforge methods directly
         self._definition = definition
         self._forge = forge
@@ -83,17 +92,18 @@ class Resource(ABC):
         if existing := self._find_existing():
             raise RuntimeError(
                 f"Similar '{self.type}' definition already exists in project "
-                f"'{self._forge._store.bucket}' with an id of: '{existing.id}'"
+                f"'{self._forge._store.bucket}' "  # pylint: disable=protected-access
+                f"with an id of: '{existing.id}'"
             )
-        else:
-            with em.utils.silence_stdout():
-                self._forge.register(self.resource)
 
-            # KnowledgeGraphForge(debug=True) does not make register raise (see: DKE-1065)
-            if self.resource._last_action.succeeded:
-                return
+        with utils.silence_stdout():
+            self._forge.register(self.resource)
 
-            raise RuntimeError(self.resource._last_action.message)
+        # KnowledgeGraphForge(debug=True) does not make register raise (see: DKE-1065)
+        if self.resource._last_action.succeeded:  # pylint: disable=protected-access
+            return
+
+        raise RuntimeError(self.resource._last_action.message)  # pylint: disable=protected-access
 
     def _check_required(self):
         """Check that the required items are defined."""
@@ -112,7 +122,7 @@ class Resource(ABC):
 
     @abstractmethod
     def _format_attributes(self, definition):
-        """If needed, format certain values in the definition."""
+        """Format needed values in the definition."""
 
     def _find_existing(self):
         """Find resource matching the definition in Nexus."""
@@ -133,7 +143,7 @@ class Resource(ABC):
 
     def _with_defaults(self, definition):
         """Add default values to definiton."""
-        defaults = em.utils.get_default_params(self.type)
+        defaults = utils.get_default_params(self.type)
         return dict(defaults, **definition)
 
     def _wrap_fields_with_ids(self, definition):
@@ -153,6 +163,8 @@ class Resource(ABC):
 
 
 class DetailedCircuit(Resource):
+    """Class to register resources of type DetailedCircuit."""
+
     required = {"name", "description", "circuitConfigPath", "circuitType"}
     possible_ids = {"wasGeneratedBy"}
 
@@ -181,15 +193,16 @@ class DetailedCircuit(Resource):
 
     def _is_equal(self, resource):
         """Checks equality assuming two circuits are the same if they have same config."""
-
         # NOTE: Can't directly search based on circuitConfigPath, need to get all circuits and map
         # through them.
-        url = em.utils.traverse_attributes(resource, ["circuitConfigPath", "url"])
+        url = utils.traverse_attributes(resource, ["circuitConfigPath", "url"])
 
         return self.resource.circuitConfigPath.url == url
 
 
 class Simulation(Resource):
+    """Class to register resources of type Simulation."""
+
     # NOTE: If we have SimulationCampaigns, is this even needed?
     required = {"name", "simulationConfigPath"}
     possible_ids = {"used"}
@@ -208,12 +221,14 @@ class Simulation(Resource):
 
     def _is_equal(self, resource):
         """Checks equality assuming two simulations are the same if they have same config."""
-        url = em.utils.traverse_attributes(resource, ["simulationConfigPath", "url"])
+        url = utils.traverse_attributes(resource, ["simulationConfigPath", "url"])
 
         return self.resource.simulationConfigPath.url == url
 
 
 class AnalysisReport(Resource):
+    """Class to register resources of type AnalysisReport."""
+
     # New format of AnalysisReport like in:
     # https://staging.nise.bbp.epfl.ch/nexus/v1/resources/bbp_test/studio_data_11/_/877ac166-779c-4926-9473-cca6bee0f50b
     required = {"configuration"}
@@ -224,7 +239,7 @@ class AnalysisReport(Resource):
         configuration = self._forge.retrieve(definition.pop("configuration"), cross_bucket=True)
         images = definition.pop("images", [])
 
-        # Needs to be Dataset, to be able to use add_files and have the same hasPart structure as the example
+        # Needs to be Dataset, to have the same hasPart structure as in the example
         resource = kgforge.specializations.resources.Dataset.from_resource(
             self._forge, kgforge.core.Resource.from_json(definition)
         )
@@ -241,16 +256,18 @@ class AnalysisReport(Resource):
 
     def _format_attributes(self, definition):
         """Nothing to do currently."""
-
         return definition
 
 
 class DetailedCircuitValidationReport(AnalysisReport):
+    """Class to register resources of type DetailedCircuitValidationReport."""
+
     # Currently the definition seems the same as for AnalysisReport
-    pass
 
 
 class SimulationCampaignConfiguration(Resource):
+    """Class to register resources of type SimulationCampaignConfiguration."""
+
     required = {"configuration", "template"}
     possible_ids = {"wasGeneratedBy"}
 
@@ -273,11 +290,11 @@ def register(token, resource_def):
         resource_def (str): Path to the YAML or JSON file.
         project (str): target ORGANIZATION/PROJECT.
     """
-    forge = em.environments.create_forge("prod", token, bucket="nse/test2")
+    forge = environments.create_forge("prod", token, bucket="nse/test2")
     # Should be added to the environments.py but using this here for now to not break anything
-    forge._debug = True
+    forge._debug = True  # pylint: disable=protected-access
 
-    resource_dict = em.utils.parse_dict_from_file(resource_def)
+    resource_dict = utils.parse_dict_from_file(resource_def)
     res_type = resource_dict.get("type", None)
 
     if cls := getattr(MODULE, res_type, None):
@@ -286,4 +303,4 @@ def register(token, resource_def):
         raise NotImplementedError(f"Unsupported type: '{res_type}'")
 
     resource.register()
-    L.info(f"'{res_type}' successfully registered with id: '{resource.resource.id}'")
+    L.info("'%s' successfully registered with id: '%s'", res_type, resource.resource.id)
