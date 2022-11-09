@@ -1,4 +1,6 @@
 """download files or create lines based on entities in the knowledge graph"""
+from __future__ import annotations
+
 import logging
 import shutil
 from pathlib import Path
@@ -13,7 +15,7 @@ L = logging.getLogger(__name__)
 
 
 def download(
-    forge, resource_id: str, output_dir: Path = ".", create_links_if_possible: bool = False
+    forge, resource_id: str, output_dir: Path | str = ".", create_links_if_possible: bool = False
 ) -> Dict[str, Path]:
     """Download files based on entities in the knowledge graph.
 

@@ -8,6 +8,11 @@ import bluepyentity.environments
 @click.command()
 @click.argument("id_")
 @click.option(
+    "--output",
+    default=".",
+    help="Output directory",
+)
+@click.option(
     "--create-links-if-possible",
     is_flag=True,
     required=False,
@@ -15,7 +20,7 @@ import bluepyentity.environments
     help="Try creating symbolic links if the storage type allows it.",
 )
 @click.pass_context
-def download(ctx, id_, create_links_if_possible):
+def download(ctx, id_, output, create_links_if_possible):
     """Download `id` from NEXUS"""
     user = ctx.meta["user"]
     env = ctx.meta["env"]
@@ -23,6 +28,8 @@ def download(ctx, id_, create_links_if_possible):
 
     token = bluepyentity.token.get_token(env=env, username=user)
 
-    forge = bluepyentity.environments.create_forge("prod", token, bucket=bucket)
+    forge = bluepyentity.environments.create_forge(env, token, bucket=bucket)
 
-    bluepyentity.download.download(forge, id_, create_links_if_possible=create_links_if_possible)
+    bluepyentity.download.download(
+        forge, id_, output_dir=output, create_links_if_possible=create_links_if_possible
+    )
