@@ -9,18 +9,14 @@ DetailedCircuit:
   description: null
   subject: null # needs to be decided
   brainLocation: null # needs to be decided
-  wasGeneratedBy: null # a single item
+  atlasRelease: null # id pointing to AtlasRelease
+  circuitConfigPath: '' # full path to the sonata config path
   # the following is only found in published data:
-  atlasRelease: null # should point to the atlas release item?
+  wasGeneratedBy: null # a single item
   contribution: null # list of contributors. Only in some occasions
   objectOfStudy: null # ?
   distribution: null # downloadable items
   license: null # linked to the license
-  # Also contains, but was supposed to be removed(?):
-  # circuitBase
-  # nodeCollection
-  # edgeCollection
-  # target
 
 # SIMULATION
 
@@ -28,6 +24,7 @@ Simulation:
   type: Simulation
   used: null # Detailed circuit used to run the simulation
   brainLocation: null # needs to be decided, only some Simulations have this
+  simulationConfigPath: '' # full path to the sonata config path
   jobId: null # string (= slurm job ID), not in all simulations
   spikes: null # Generated spike report. not in all simulations
   generated: null # List of enerated reports by the simulation. is the spikes needed if we have this?
@@ -35,42 +32,6 @@ Simulation:
   startedAtTime: null
   endedAtTime: null
   wasGeneratedBy: null # list of Entities
-
-# ANALYSIS
-
-# Do we wish to register all the data here or just the Reports (AnalysisReport /DetailedCircuitValidationReport)
-
-Analysis: # Describes the activity
-  type: Analysis
-  name: null
-  status: null # Done / Pending / Running / Failed
-  startedAtTime: null
-  endedAtTime: null
-  used: null # list of items used (at least AnalysisConfiguration, AnalysisReport)
-
-
-AnalysisReport: # the actual analysis report
-  name: ''
-  description: ''
-  type: AnalysisReport
-  categories: null # list of categories (e.g., "Synapse")
-  images: null # image(s) of the report as a list added in "hasPart" as distributions
-  configuration: null # id of a SimulationCampaignConfiguration
-  types: null # list of types as strings (e.g., "Analysis")
-
-DetailedCircuitValidation: # same as Analysis
-  type: DetailedCircuitValidation
-
-DetailedCircuitValidationReport: # same as AnalysisReport
-  type: DetailedCircuitValidationReport
-
-CampaignAnalysis: # describes the activity
-  used: null # list of VariableReports
-  generated: null # id of an AnalysisReport
-  wasInformedBy: null # id to SimulationCampaign
-
-# NOTE:
-# Rest of the file is more of collection of entity definitions and not meant to be used as is
 
 # SIMULATION CAMPAIGN
 
@@ -83,10 +44,25 @@ SimulationCampaignConfiguration:
   target: /path/to/optional/target # IIRC, this was going to be removed (or only in circuits?). Target file of the simulation. (as DataDownload)
   wasGeneratedBy: null # SimulationCampaignGeneration
 
+# ANALYSIS
+
+AnalysisReport: # the actual analysis report
+  name: ''
+  description: ''
+  type: AnalysisReport
+  categories: null # list of categories (e.g., "Synapse")
+  images: null # image(s) of the report as a list added in "hasPart" as distributions
+  configuration: null # id of a SimulationCampaignConfiguration
+  types: null # list of types as strings (e.g., "Analysis")
+
+DetailedCircuitValidationReport: # same as AnalysisReport
+  type: DetailedCircuitValidationReport
 
 # SUBJECT
 
 # Some variations of this is currently used with mouse
+# Seems to also be a part of atlasRelease, too
+# in circuit, would look something like
 SubjectMusMusculus:
   type: Subject
   providerId: null # id as a string, e.g.: mtC231100A, not always given
@@ -97,43 +73,19 @@ SubjectMusMusculus:
     id: http://www.ebi.ac.uk/efo/EFO_0000606
     label: C57BL/6J
 
-# Used with Rattus Norvegicus (some variations of this)
-SubjectRattusNorvegicus:
-  name: string
-  identifier: null # id as a string, e.g.: mtC050301A, not always given
-  type:
-    - Entity
-    - Subject
-  species:
-    id: ncbitaxon:10116
-    label: Rattus norvegicus
-  strain:
-    id: http://purl.obolibrary.org/obo/RS_0001833
-    label: Wistar Han
-  wasGeneratedBy:
-    id: https://bbp.epfl.ch/neurosciencegraph/data/c9d7a746-f626-4a72-8379-27c8fccdc011
-    type: WorkflowExecution
-
+# BRAIN ATLAS
+# In circuit, would look like
+AtlasRelease:
+ id: https://bbp.epfl.ch/nexus/v1/resources/nse/test2/_/197d151d-4ed2-4549-85fd-6c51bd471262
+ type:
+   - AtlasRelease
+   - BrainAtlasRelease
 
 # BRAIN LOCATION
-
-# This was the old brain location definition
-BrainLocationOld:
-  type: BrainLocation
-  brainRegion:
-    type: BrainRegion
-    id: http://purl.obolibrary.org/obo/UBERON_0008933
-    label: primary somatosensory cortex
-
-# Something like this is what we would be using
-BrainLocationNew:
+# Something like this is what we would be using in circuit
+BrainLocation:
   type: BrainLocation
   label: Isocortex
   brainRegion:
     id: http://api.brain-map.org/api/v2/data/Structure/315
-    type: Class
     label: Isocortex
-    isDefinedBy: http://bbp.epfl.ch/neurosciencegraph/ontologies/core/brainregion
-    notation: Isocortex
-    prefLabel: Isocortex
-    subClassOf: nsg:BrainRegion

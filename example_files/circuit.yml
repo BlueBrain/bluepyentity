@@ -1,5 +1,5 @@
 type: DetailedCircuit
-#id: https://bbp.epfl.ch/nexus/v1/resources/nse/test2/_/9be40e75-8744-415b-b0b4-e4074ff54a8f
+atlasRelease: https://bbp.epfl.ch/nexus/v1/resources/nse/test2/_/197d151d-4ed2-4549-85fd-6c51bd471262
 brainRegion: http://api.brain-map.org/api/v2/data/Structure/549
 name: Test Circuit registration
 description: Test registration, to be deprecated

@@ -36,8 +36,7 @@ def _wrap_id_fetch(id_, forge):
         try:
             return _wrap_id(id_, forge.retrieve(id_, cross_bucket=True).type)
         except kgforge.core.commons.exceptions.RetrievalError as e:
-            # TODO: decide on action to take
-            L.warning(e.args[0])
+            raise RuntimeError(e) from e
     elif isinstance(id_, list):
         return [_wrap_id_fetch(i, forge) for i in id_]
 
@@ -165,7 +164,7 @@ class DetailedCircuit(Resource):
     """Class to register resources of type DetailedCircuit."""
 
     required = {"name", "description", "circuitConfigPath", "circuitType"}
-    possible_ids = {"wasGeneratedBy"}
+    possible_ids = {"wasGeneratedBy", "atlasRelease"}
 
     def _format_attributes(self, definition):
         patch = {}
