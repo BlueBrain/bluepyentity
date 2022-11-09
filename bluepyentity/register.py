@@ -123,6 +123,10 @@ class Resource(ABC):
 
         return None
 
+    def _get_distribution(self):
+        """Create a distribution of files to be uploaded."""
+        return [self._forge.attach(path) for path in self._definition.get("upload", [])]
+
     def _is_equal(self, resource):
         """Implements checking if the definition is equal to a nexus resource."""
         return getattr(self.resource, "id", None) == resource.id
