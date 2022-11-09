@@ -18,13 +18,14 @@ def get_environment(env):
     return importlib.resources.path("bluepyentity.data", ENVIRONMENTS[env])
 
 
-def create_forge(environment, token, bucket):
+def create_forge(environment, token, bucket, debug=False):
     """create a kgforge.KnowledgeGraphForge object"""
     with get_environment(environment) as env:
         forge = KnowledgeGraphForge(
             str(env.absolute()),
             token=token,
             bucket=bucket,
+            debug=debug,
         )
         return forge
 

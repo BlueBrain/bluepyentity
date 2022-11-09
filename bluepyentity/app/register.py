@@ -9,17 +9,21 @@ import bluepyentity
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 
 
-# TODO: enable project as an argument ('nse/test2' used for testing)
 @click.command()
 @click.argument("resource", required=REQUIRED_PATH)
-# @click.option("--project, -p", type=str, default="nse/test2", help="target ORGANIZATION/PROJECT")
+@click.option("--dry-run", is_flag=True, help="Do not register, just show what would be registered")
 @click.pass_context
-# def register(ctx, resource, project):
-def register(ctx, resource):
+def register(ctx, resource, dry_run):
     """Register a RESOURCE to NEXUS. Supported file formats: .yml/.yaml, .json"""
     user = ctx.meta["user"]
     env = ctx.meta["env"]
+    bucket = ctx.meta["bucket"]
 
-    token = bluepyentity.token.get_token(env=env, username=user)
+    forge = bluepyentity.environments.create_forge(
+        "prod",
+        bluepyentity.token.get_token(env=env, username=user),
+        bucket=bucket,
+        debug=True,
+    )
 
-    bluepyentity.register.register(token, resource)
+    bluepyentity.register.register(forge, resource, dry_run=dry_run)

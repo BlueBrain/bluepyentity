@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 import kgforge
 
-from bluepyentity import environments, utils
+from bluepyentity import utils
 
 L = logging.getLogger(__name__)
 
@@ -17,7 +17,6 @@ MODULE = sys.modules[__name__]
 
 
 def _is_url(item):
-    # NOTE: perhaps check for NEXUS URLs only
     return isinstance(item, str) and RE_URL.match(item)
 
 
@@ -128,7 +127,7 @@ class Resource(ABC):
         """Find resource matching the definition in Nexus."""
         found = self._forge.search({"type": self.type}, cross_bucket=True)
         for r in found:
-            if self._is_equal(r):
+            if self._is_equal_to_nexus_resource(r):
                 return r
 
         return None
@@ -137,7 +136,7 @@ class Resource(ABC):
         """Create a distribution of files to be uploaded."""
         return [self._forge.attach(path) for path in self._definition.get("upload", [])]
 
-    def _is_equal(self, resource):
+    def _is_equal_to_nexus_resource(self, resource):
         """Implements checking if the definition is equal to a nexus resource."""
         return getattr(self.resource, "id", None) == resource.id
 
@@ -191,7 +190,7 @@ class DetailedCircuit(Resource):
 
         return dict(definition, **patch)
 
-    def _is_equal(self, resource):
+    def _is_equal_to_nexus_resource(self, resource):
         """Checks equality assuming two circuits are the same if they have same config."""
         # NOTE: Can't directly search based on circuitConfigPath, need to get all circuits and map
         # through them.
@@ -219,7 +218,7 @@ class Simulation(Resource):
 
         return dict(definition, **patch)
 
-    def _is_equal(self, resource):
+    def _is_equal_to_nexus_resource(self, resource):
         """Checks equality assuming two simulations are the same if they have same config."""
         url = utils.traverse_attributes(resource, ["simulationConfigPath", "url"])
 
@@ -280,20 +279,16 @@ class SimulationCampaignConfiguration(Resource):
         return dict(definition, **patch)
 
 
-def register(token, resource_def):
+def register(forge, resource_def, dry_run=False):
     """Register a Resource in Nexus.
 
     The parameters of the resource are given in a file.
 
     Args:
-        token (str): NEXUS access token.
+        forge (kgforge.core.KnowledgeGraphForge): nexus-forge instance.
         resource_def (str): Path to the YAML or JSON file.
-        project (str): target ORGANIZATION/PROJECT.
+        dry_run (bool): Do not register but print the parsed resource.
     """
-    forge = environments.create_forge("prod", token, bucket="nse/test2")
-    # Should be added to the environments.py but using this here for now to not break anything
-    forge._debug = True  # pylint: disable=protected-access
-
     resource_dict = utils.parse_dict_from_file(resource_def)
     res_type = resource_dict.get("type", None)
 
@@ -301,6 +296,11 @@ def register(token, resource_def):
         resource = cls(resource_dict, forge)
     else:
         raise NotImplementedError(f"Unsupported type: '{res_type}'")
+
+    if dry_run:
+        # Log w/ critical level to ensure always being printed
+        L.critical("%s:\n%s", res_type, resource.resource)
+        return
 
     resource.register()
     L.info("'%s' successfully registered with id: '%s'", res_type, resource.resource.id)
