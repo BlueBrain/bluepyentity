@@ -113,20 +113,20 @@ def _remove_prefix(prefix: str, path: str) -> str:
     return path
 
 
-def _copy_file(source: Path, target: Path, create_links_if_possible: bool = True) -> Path:
-    source = Path(source).resolve()
-    target = Path(target).resolve()
+def _copy_file(source_path: Path, target_path: Path, create_link: bool = True) -> Path:
+    source_path = Path(source_path).resolve()
+    target_path = Path(target_path).resolve()
 
-    if not source.exists():
-        raise BluepyEntityError(f"Source path {source} does not exist.")
+    if not source_path.exists():
+        raise BluepyEntityError(f"Source path {source_path} does not exist.")
 
-    if target.exists():
-        L.info("Target %s already exists and will be replaced.", target)
-        target.unlink()
+    if target_path.exists():
+        L.info("Target %s already exists and will be replaced.", target_path)
+        target_path.unlink()
 
-    if create_links_if_possible:
-        target.symlink_to(source)
-        L.debug("Link %s -> %s", source, target)
+    if create_link:
+        target_path.symlink_to(source_path)
+        L.debug("Link %s -> %s", source_path, target_path)
     else:
-        shutil.copy(source, target)
-        L.debug("Copy %s -> %s", source, target)
+        shutil.copy(source_path, target_path)
+        L.debug("Copy %s -> %s", source_path, target_path)
