@@ -32,25 +32,28 @@ def download(
     resource = forge.retrieve(resource_id, cross_bucket=True)
 
     if hasattr(resource, "distribution"):
-        return _download_distributions(
-            forge, resource.distribution, output_dir, create_links_if_possible
-        )
+        return _download_distributions(forge, resource, output_dir, create_links_if_possible)
 
     raise BluepyEntityError(f"Resource {resource_id} does not have distributions to download.")
 
 
 def _download_distributions(
-    forge, distributions, output_dir, create_links_if_possible
+    forge, resource, output_dir, create_links_if_possible
 ) -> Dict[str, Path]:
 
     paths: Dict[str, Path] = {}
 
     valid_distributions = (
         distribution
-        for distribution in always_iterable(distributions)
+        for distribution in always_iterable(resource.distribution)
         if _is_downloadable(distribution)
     )
     for distribution in valid_distributions:
+
+        # temp hack to fix the nonexistent store metadata
+        if not hasattr(distribution, "_store_metadata") or not distribution._store_metadata:
+            assert resource._store_metadata
+            distribution._store_metadata = resource._store_metadata
 
         target_name = distribution.name
 
