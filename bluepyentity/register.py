@@ -88,10 +88,10 @@ class Resource(ABC):
     def register(self):
         """Register the resource in Nexus."""
         if existing := self._find_existing():
+            bucket = self._forge._store.bucket  # pylint: disable=protected-access
             raise RuntimeError(
                 f"Similar '{self.type}' definition already exists in project "
-                f"'{self._forge._store.bucket}' "  # pylint: disable=protected-access
-                f"with an id of: '{existing.id}'"
+                f"'{bucket}' with an id of: '{existing.id}'"
             )
 
         with utils.silence_stdout():
