@@ -46,7 +46,7 @@ def _download_distributions(
     valid_distributions = (
         distribution
         for distribution in always_iterable(distributions)
-        if _is_downloadable(distributions)
+        if _is_downloadable(distribution)
     )
     for distribution in valid_distributions:
 
