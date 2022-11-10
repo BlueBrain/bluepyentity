@@ -38,6 +38,7 @@ setup(
     install_requires=[
         "click",
         "keyring",
+        "requests_kerberos",
         "lazy-object-proxy>=1.5.2,<2.0.0",
         "more-itertools>=8.2.0,<9.0.0",
         "nexusforge>=0.7.0,<1.0.0",

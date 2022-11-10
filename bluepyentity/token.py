@@ -24,6 +24,32 @@ def _token_name(env):
     return f"kgforge:{env}"
 
 
+def _get_token_kerberos():
+    import random
+    import requests
+    from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+    from urllib.parse import urlsplit, parse_qs, urlencode
+
+    payload = urlencode({'client_id': 'bbp-nise-nexus-fusion',
+                         'redirect_uri': 'https://bbp.epfl.ch/nexus/web/',
+                         'response_type': 'id_token token',
+                         'scope': 'openid',
+                         'nonce': str(random.randint(0, int(1e100))),
+                         })
+
+    url = 'https://bbpauth.epfl.ch/auth/realms/BBP/protocol/openid-connect/auth?' + payload
+
+    kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL)
+    try:
+        r = requests.get(url, auth=kerberos_auth)
+        r.raise_for_status()
+
+        params = parse_qs(urlsplit(r.url).fragment)
+        return params['access_token'][0]
+    except Exception:
+        return None
+
+
 def set_token(env, username=None, token=None):
     """set the token for the username and environment
 
@@ -32,7 +58,9 @@ def set_token(env, username=None, token=None):
     username = _getuser(username)
 
     if token is None:
-        token = bluepyentity.utils.get_secret(prompt="Token: ")
+        token = _get_token_kerberos()
+        if not is_valid(token):
+            token = bluepyentity.utils.get_secret(prompt="Token: ")
 
     if not is_valid(token):
         L.error("The token could not be decoded or has expired. the length was %d", len(token))
