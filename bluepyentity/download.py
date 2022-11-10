@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """download files or create lines based on entities in the knowledge graph"""
 from __future__ import annotations
 

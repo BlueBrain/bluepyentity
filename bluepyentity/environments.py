@@ -1,4 +1,7 @@
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Wrap different environments with different parameters ex: endpoints"""
+
 import importlib.resources
 
 import yaml
