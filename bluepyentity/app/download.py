@@ -3,6 +3,7 @@
 """download cli entry point"""
 
 import click
+from rich import console, pretty
 
 import bluepyentity
 import bluepyentity.environments
@@ -33,6 +34,9 @@ def download(ctx, id_, output, create_links_if_possible):
 
     forge = bluepyentity.environments.create_forge(env, token, bucket=bucket)
 
-    bluepyentity.download.download(
+    ret = bluepyentity.download.download(
         forge, id_, output_dir=output, create_links_if_possible=create_links_if_possible
     )
+
+    cons = console.Console()
+    pretty.pprint(ret, console=cons)

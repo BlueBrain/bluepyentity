@@ -51,7 +51,7 @@ def _download_distributions(
         if _is_downloadable(distribution)
     )
     for distribution in valid_distributions:
-
+        # pylint: disable=protected-access
         # temp hack to fix the nonexistent store metadata
         if not hasattr(distribution, "_store_metadata") or not distribution._store_metadata:
             assert resource._store_metadata
@@ -105,7 +105,12 @@ def _download_distribution_file(forge, distribution, target_path, create_links_i
     if _has_gpfs_location(distribution):
         L.debug("Distribution with file %s has atLocation.", target_path.name)
         source_path = Path(_remove_prefix("file://", distribution.atLocation.location))
-        _copy_file(source_path, target_path, create_links_if_possible)
+        if source_path.exists():
+            _copy_file(source_path, target_path, create_links_if_possible)
+        else:
+            forge.download(
+                distribution, follow="contentUrl", path=target_path.parent, cross_bucket=True
+            )
     else:
         L.debug("Distribution with file %s doesn't have atLocation.", target_path.name)
         forge.download(
