@@ -1,5 +1,9 @@
 # Collection of entity-management classes and their relations
 # - the _inherits and _id_fields are parsed away in the parser
+# - the goal is to get all this information (schema) from Nexus so that this file is not needed
+# --- in that case, I'd expect the "null" values to contain type hints or similar
+# - it would probably be better/easier if each of the files had "_attrs" key that holds the attributes
+
 # COMMON
 
 _Entity:
@@ -29,6 +33,11 @@ Activity:
 AnalysisReport:
   distribution: null
   image: null
+
+  # Added
+  derivation: null
+  types: null
+
   _inherits:
     - _Entity
 

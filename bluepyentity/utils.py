@@ -15,6 +15,7 @@ import pkg_resources
 import yaml
 
 DEFAULT_PARAMS_PATH = pkg_resources.resource_filename(__name__, "default_params.yaml")
+ENTITIES_PATH = pkg_resources.resource_filename(__name__, "entity_definitions.yaml")
 
 
 class NoDatesSafeLoader(yaml.SafeLoader):  # pylint: disable=too-many-ancestors
@@ -147,6 +148,28 @@ def get_default_params(type_):
         dict: default parameters as dict
     """
     return parse_dict_from_file(DEFAULT_PARAMS_PATH).get(type_, {})
+
+
+def get_entity_definition(type_):
+    """Get entity definition from the parsed definition file."""
+    entities = parse_dict_from_file(ENTITIES_PATH)
+
+    def get_entity(name):
+        ent_dict = entities[name].copy()
+        ids = set(ent_dict.pop("_id_fields", []))
+
+        for ent in ent_dict.pop("_inherits", []):
+            inherited_ent, inherited_ids = get_entity(ent)
+            ids.update(inherited_ids)
+            ent_dict = dict(ent_dict, **inherited_ent)
+
+        return ent_dict, ids
+
+    if type_ in entities:
+        schema, ids = get_entity(type_)
+        return {"schema": schema, "ids": ids}
+
+    return None
 
 
 def traverse_attributes(item, path):

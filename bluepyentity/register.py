@@ -2,7 +2,7 @@
 import logging
 import re
 import sys
-from abc import ABC, abstractmethod
+from functools import cached_property
 
 import kgforge
 
@@ -18,6 +18,11 @@ MODULE = sys.modules[__name__]
 
 def _is_url(item):
     return isinstance(item, str) and RE_URL.match(item)
+
+
+def _is_supported_type(type_):
+    # This is a bit dangerous as the type can be _Entity which would evaluate as True here
+    return utils.get_entity_definition(type_) is not None
 
 
 def _wrap_linked_file_path(path):
@@ -44,11 +49,11 @@ def _wrap_id_fetch(id_, forge):
 
 
 # NOTE: Should this work with bluepyentity.nexus.entityEntity?
-class Resource(ABC):
+class Resource:
     """Base class for resources to register."""
 
-    required = {}
-    possible_ids = {}
+    # This value should came from the schemas
+    required = set()
 
     def __init__(self, definition, forge):
         """Resource initializer.
@@ -61,6 +66,9 @@ class Resource(ABC):
         # kgforge methods directly
         self._definition = definition
         self._forge = forge
+
+        self._check_if_valid()
+
         self._resource = self._create_resource()
 
     @property
@@ -70,10 +78,14 @@ class Resource(ABC):
         refined = self._wrap_fields_with_ids(refined)
 
         # Fields to not store in Nexus
-        refined.pop("upload", None)
         refined.pop("brainRegion", None)
 
         return self._with_defaults(refined)
+
+    @property
+    def possible_ids(self):
+        """Return the fields that possibly contains nexus ids"""
+        return self._schema_definition["ids"]
 
     @property
     def resource(self):
@@ -81,9 +93,19 @@ class Resource(ABC):
         return self._resource
 
     @property
+    def schema(self):
+        """Schema for the entity."""
+        # TODO: figure out how to get this from Nexus and use it to validate types etc.
+        return self._schema_definition["schema"]
+
+    @property
     def type(self):
         """Return the Nexus type of the resource."""
         return self._definition["type"]
+
+    @cached_property
+    def _schema_definition(self):
+        return utils.get_entity_definition(self.type)
 
     def register(self):
         """Register the resource in Nexus."""
@@ -103,24 +125,30 @@ class Resource(ABC):
 
         raise RuntimeError(self.resource._last_action.message)  # pylint: disable=protected-access
 
+    def _check_if_valid(self):
+        self._check_required()
+        self._check_schema()
+
     def _check_required(self):
         """Check that the required items are defined."""
-        missing = self.required - set(self._definition)
+        missing = self.required - set(self.definition)
         assert not missing, f"Missing attributes: {missing}"
+
+    def _check_schema(self):
+        disallowed = set(self.definition) - set(self.schema)
+        disallowed -= {"type"}
+        assert not disallowed, f"Disallowed attributes: {disallowed}"
 
     def _create_resource(self):
         """Create a kgforge Resource of the definition."""
-        self._check_required()
-        resource = kgforge.core.Resource.from_json(self.definition)
+        definition = self.definition
+        definition["distribution"] = self._get_distribution()
 
-        if distribution := self._get_distribution():
-            setattr(resource, "distribution", distribution)
+        return kgforge.core.Resource.from_json(definition)
 
-        return resource
-
-    @abstractmethod
     def _format_attributes(self, definition):
         """Format needed values in the definition."""
+        return definition
 
     def _find_existing(self):
         """Find resource matching the definition in Nexus."""
@@ -133,7 +161,10 @@ class Resource(ABC):
 
     def _get_distribution(self):
         """Create a distribution of files to be uploaded."""
-        return [self._forge.attach(path) for path in self._definition.get("upload", [])]
+        if distribution := self._definition.get("distribution"):
+            return [self._forge.attach(path) for path in distribution]
+
+        return None
 
     def _is_equal_to_nexus_resource(self, resource):
         """Implements checking if the definition is equal to a nexus resource."""
@@ -164,7 +195,6 @@ class DetailedCircuit(Resource):
     """Class to register resources of type DetailedCircuit."""
 
     required = {"name", "description", "circuitConfigPath", "circuitType"}
-    possible_ids = {"wasGeneratedBy", "atlasRelease"}
 
     def _format_attributes(self, definition):
         patch = {}
@@ -203,7 +233,6 @@ class Simulation(Resource):
 
     # NOTE: If we have SimulationCampaigns, is this even needed?
     required = {"name", "simulationConfigPath"}
-    possible_ids = {"used"}
 
     def _format_attributes(self, definition):
         patch = {}
@@ -229,13 +258,13 @@ class AnalysisReport(Resource):
 
     # New format of AnalysisReport like in:
     # https://staging.nise.bbp.epfl.ch/nexus/v1/resources/bbp_test/studio_data_11/_/877ac166-779c-4926-9473-cca6bee0f50b
-    required = {"configuration"}
+    required = {"derivation"}
 
     def _create_resource(self):
-        self._check_required()
         definition = self.definition
-        configuration = self._forge.retrieve(definition.pop("configuration"), cross_bucket=True)
-        images = definition.pop("images", [])
+        definition["distribution"] = self._get_distribution()
+        configuration = self._forge.retrieve(definition.pop("derivation"), cross_bucket=True)
+        images = definition.pop("image", [])
 
         # Needs to be Dataset, to have the same hasPart structure as in the example
         resource = kgforge.specializations.resources.Dataset.from_resource(
@@ -252,10 +281,6 @@ class AnalysisReport(Resource):
 
         return resource
 
-    def _format_attributes(self, definition):
-        """Nothing to do currently."""
-        return definition
-
 
 class DetailedCircuitValidationReport(AnalysisReport):
     """Class to register resources of type DetailedCircuitValidationReport."""
@@ -267,7 +292,6 @@ class SimulationCampaignConfiguration(Resource):
     """Class to register resources of type SimulationCampaignConfiguration."""
 
     required = {"configuration", "template"}
-    possible_ids = {"wasGeneratedBy"}
 
     def _format_attributes(self, definition):
         patch = {}
@@ -293,6 +317,8 @@ def register(forge, resource_def, dry_run=False):
 
     if cls := getattr(MODULE, res_type, None):
         resource = cls(resource_dict, forge)
+    elif _is_supported_type(res_type):
+        resource = Resource(resource_dict, forge)
     else:
         raise NotImplementedError(f"Unsupported type: '{res_type}'")
 

@@ -1,91 +1,42 @@
-# Collection of different entity types. Will be a collection of default params based on entity type
-# Could also be used as collection of allowed params but Nexus schema should check for that.
+# Currently, mostly a placeholder for possible default values
 
 # CIRCUIT
 
 DetailedCircuit:
   type: DetailedCircuit
-  name: null
-  description: null
-  subject: null # needs to be decided
-  brainLocation: null # needs to be decided
-  atlasRelease: null # id pointing to AtlasRelease
-  circuitConfigPath: '' # full path to the sonata config path
-  # the following is only found in published data:
-  wasGeneratedBy: null # a single item
-  contribution: null # list of contributors. Only in some occasions
-  objectOfStudy: null # ?
-  distribution: null # downloadable items
-  license: null # linked to the license
 
 # SIMULATION
 
 Simulation:
   type: Simulation
-  used: null # Detailed circuit used to run the simulation
-  brainLocation: null # needs to be decided, only some Simulations have this
-  simulationConfigPath: '' # full path to the sonata config path
-  jobId: null # string (= slurm job ID), not in all simulations
-  spikes: null # Generated spike report. not in all simulations
-  generated: null # List of enerated reports by the simulation. is the spikes needed if we have this?
-  params: null # If simulation is part of the campaign, file that contains all the sim params. In some cases the params are attached to simulation
-  startedAtTime: null
-  endedAtTime: null
-  wasGeneratedBy: null # list of Entities
 
 # SIMULATION CAMPAIGN
 
 SimulationCampaignConfiguration:
   type: SimulationCampaignConfiguration
-  name: ''
-  description: ''
-  configuration: /file/path/to/params.json # should be converted to data download (GPFS vs. uploaded?). Contains values to fill the template with. (as DataDownload)
-  template: /path/to/template/BlueConfig # should be path to sim config template file. (as DataDownload)
-  target: /path/to/optional/target # IIRC, this was going to be removed (or only in circuits?). Target file of the simulation. (as DataDownload)
-  wasGeneratedBy: null # SimulationCampaignGeneration
 
 # ANALYSIS
 
 AnalysisReport: # the actual analysis report
-  name: ''
-  description: ''
   type: AnalysisReport
-  categories: null # list of categories (e.g., "Synapse")
-  images: null # image(s) of the report as a list added in "hasPart" as distributions
-  configuration: null # id of a SimulationCampaignConfiguration
-  types: null # list of types as strings (e.g., "Analysis")
 
 DetailedCircuitValidationReport: # same as AnalysisReport
   type: DetailedCircuitValidationReport
 
 # SUBJECT
 
-# Some variations of this is currently used with mouse
-# Seems to also be a part of atlasRelease, too
-# in circuit, would look something like
-SubjectMusMusculus:
+Subject:
   type: Subject
-  providerId: null # id as a string, e.g.: mtC231100A, not always given
-  species:
-    id: http://purl.obolibrary.org/obo/NCBITaxon_10090
-    label: Mus musculus
-  strain: # not all of the mouse subjects have this
-    id: http://www.ebi.ac.uk/efo/EFO_0000606
-    label: C57BL/6J
 
 # BRAIN ATLAS
-# In circuit, would look like
+
 AtlasRelease:
- id: https://bbp.epfl.ch/nexus/v1/resources/nse/test2/_/197d151d-4ed2-4549-85fd-6c51bd471262
  type:
    - AtlasRelease
    - BrainAtlasRelease
 
 # BRAIN LOCATION
-# Something like this is what we would be using in circuit
+
 BrainLocation:
   type: BrainLocation
-  label: Isocortex
-  brainRegion:
-    id: http://api.brain-map.org/api/v2/data/Structure/315
-    label: Isocortex
+  brainRegion: null
