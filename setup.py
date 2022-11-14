@@ -43,6 +43,7 @@ setup(
         "nexusforge>=0.7.0,<1.0.0",
         "pyjwt",
         "rich",
+        "more-itertools",
     ],
     packages=find_packages(),
     python_requires=">=3.7",
