@@ -25,28 +25,37 @@ def _token_name(env):
 
 
 def _get_token_kerberos():
+    # pylint: disable=import-outside-toplevel
+    try:
+        from requests_kerberos import OPTIONAL, HTTPKerberosAuth
+    except ImportError:
+        return None
+
     import random
+    from urllib.parse import parse_qs, urlencode, urlsplit
+
     import requests
-    from requests_kerberos import HTTPKerberosAuth, OPTIONAL
-    from urllib.parse import urlsplit, parse_qs, urlencode
 
-    payload = urlencode({'client_id': 'bbp-nise-nexus-fusion',
-                         'redirect_uri': 'https://bbp.epfl.ch/nexus/web/',
-                         'response_type': 'id_token token',
-                         'scope': 'openid',
-                         'nonce': str(random.randint(0, int(1e100))),
-                         })
+    payload = urlencode(
+        {
+            "client_id": "bbp-nise-nexus-fusion",
+            "redirect_uri": "https://bbp.epfl.ch/nexus/web/",
+            "response_type": "id_token token",
+            "scope": "openid",
+            "nonce": str(random.randint(0, int(1e100))),
+        }
+    )
 
-    url = 'https://bbpauth.epfl.ch/auth/realms/BBP/protocol/openid-connect/auth?' + payload
+    url = "https://bbpauth.epfl.ch/auth/realms/BBP/protocol/openid-connect/auth?" + payload
 
     kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL)
     try:
-        r = requests.get(url, auth=kerberos_auth)
+        r = requests.get(url, auth=kerberos_auth, timeout=1.0)
         r.raise_for_status()
 
         params = parse_qs(urlsplit(r.url).fragment)
-        return params['access_token'][0]
-    except Exception:
+        return params["access_token"][0]
+    except Exception:  # pylint: disable=broad-except
         return None
 
 
