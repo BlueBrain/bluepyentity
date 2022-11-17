@@ -18,6 +18,10 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 VERSION = module.__version__
 
+EXTRA_BBP = [
+    "bbp-workflow-cli",
+]
+
 EXTRA_KRB = [
     "requests_kerberos",
 ]
@@ -53,6 +57,7 @@ setup(
     python_requires=">=3.7",
     extras_require={
         "docs": ["sphinx", "sphinx-bluebrain-theme"],
+        "BBP": EXTRA_BBP,
         "krb": EXTRA_KRB,
     },
     classifiers=[

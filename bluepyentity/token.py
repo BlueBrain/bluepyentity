@@ -2,6 +2,7 @@
 
 """token handling"""
 import datetime
+import functools
 import getpass
 import logging
 import os
@@ -24,8 +25,30 @@ def _token_name(env):
     return f"kgforge:{env}"
 
 
+def _get_token_bbp_workflow_cli():
+    # pylint: disable=import-outside-toplevel, import-error
+    try:
+        from bbp_workflow_cli.k8s_util import WFL_NS, core_api, get_pod_name
+    except ImportError:
+        return None
+
+    from kubernetes.stream import stream
+
+    token = stream(
+        core_api().connect_get_namespaced_pod_exec,
+        get_pod_name(),
+        WFL_NS,
+        command=["curl", "-s", "-f", "localhost:8000/params/?access_token"],
+        stderr=True,
+        stdin=False,
+        stdout=True,
+        tty=False,
+    )
+    return token
+
+
 def _get_token_kerberos():
-    # pylint: disable=import-outside-toplevel
+    # pylint: disable=import-outside-toplevel, import-error
     try:
         from requests_kerberos import OPTIONAL, HTTPKerberosAuth
     except ImportError:
@@ -66,10 +89,15 @@ def set_token(env, username=None, token=None):
     """
     username = _getuser(username)
 
-    if token is None:
-        token = _get_token_kerberos()
-        if not is_valid(token):
-            token = bluepyentity.utils.get_secret(prompt="Token: ")
+    for func in (
+        _get_token_kerberos,
+        _get_token_bbp_workflow_cli,
+        functools.partial(bluepyentity.utils.get_secret, prompt="Token: "),
+    ):
+        if is_valid(token):
+            break
+
+        token = func()
 
     if not is_valid(token):
         L.error("The token could not be decoded or has expired. the length was %d", len(token))
