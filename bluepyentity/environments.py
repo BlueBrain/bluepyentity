@@ -84,8 +84,8 @@ def create_forge(environment, token, bucket, store_overrides=None, debug=False):
         if not all(key in allowed_keys for key in store_overrides):
             raise BluepyEntityError(
                 f"Unsupported 'store_overrides' keys. "
-                f"Supported: {allowed_keys}."
-                f"Encountered: {store_overrides}."
+                f"Supported: {sorted(allowed_keys)}. "
+                f"Encountered: {sorted(store_overrides)}."
             )
         forge_kwargs.update(store_overrides)
 
