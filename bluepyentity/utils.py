@@ -150,6 +150,16 @@ def get_default_params(type_):
     return parse_dict_from_file(DEFAULT_PARAMS_PATH).get(type_, {})
 
 
+def get_entity_definitions():
+    '''Get all known entities'''
+    entities = parse_dict_from_file(ENTITIES_PATH)
+    skipped_entities = ['_Entity', 'EntityMixin', ]
+    for se in skipped_entities:
+        if se in entities:
+            del entities[se]
+    return entities
+
+
 def get_entity_definition(type_):
     """Get entity definition from the parsed definition file."""
     entities = parse_dict_from_file(ENTITIES_PATH)
