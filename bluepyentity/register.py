@@ -162,7 +162,15 @@ class Resource:
     def _get_distribution(self):
         """Create a distribution of files to be uploaded."""
         if distribution := self._definition.get("distribution"):
-            return [self._forge.attach(path) for path in distribution]
+            ret = []
+            for path in distribution:
+                if isinstance(path, dict):
+                    resource = self._forge.attach(path=path['path'],
+                                                  content_type=path['content_type'])
+                else:
+                    resource = self._forge.attach(path)
+                ret.append(resource)
+            return ret
 
         return None
 
@@ -302,23 +310,22 @@ class SimulationCampaignConfiguration(Resource):
         return dict(definition, **patch)
 
 
-def register(forge, resource_def, dry_run=False):
+def register(forge, resource_defition, dry_run=False):
     """Register a Resource in Nexus.
 
     The parameters of the resource are given in a file.
 
     Args:
         forge (kgforge.core.KnowledgeGraphForge): nexus-forge instance.
-        resource_def (str): Path to the YAML or JSON file.
+        resource_defition(dict): Definition of the resource
         dry_run (bool): Do not register but print the parsed resource.
     """
-    resource_dict = utils.parse_dict_from_file(resource_def)
-    res_type = resource_dict.get("type", None)
+    res_type = resource_defition.get("type", None)
 
     if cls := getattr(MODULE, res_type, None):
-        resource = cls(resource_dict, forge)
+        resource = cls(resource_defition, forge)
     elif _is_supported_type(res_type):
-        resource = Resource(resource_dict, forge)
+        resource = Resource(resource_defition, forge)
     else:
         raise NotImplementedError(f"Unsupported type: '{res_type}'")
 
@@ -329,3 +336,4 @@ def register(forge, resource_def, dry_run=False):
 
     resource.register()
     L.info("'%s' successfully registered with id: '%s'", res_type, resource.resource.id)
+    return resource

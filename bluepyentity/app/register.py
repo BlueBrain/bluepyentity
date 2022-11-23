@@ -27,14 +27,22 @@ def entity(ctx, resource, dry_run):
     env = ctx.meta["env"]
     bucket = ctx.meta["bucket"]
 
+    cons = console.Console()
     forge = bluepyentity.environments.create_forge(
-        "prod",
+        env,
         bluepyentity.token.get_token(env=env, username=user),
         bucket=bucket,
         debug=True,
     )
 
-    bluepyentity.register.register(forge, resource, dry_run=dry_run)
+    resource = utils.parse_dict_from_file(resource)
+    resources = (resource, ) if isinstance(resource, dict) else resource
+
+    registrations = [bluepyentity.register.register(forge, resource, dry_run=dry_run)
+                     for resource in resources]
+    ids = [(resource, registration.resource.id) for resource, registration in zip(resources, registrations)]
+
+    pretty.pprint(ids, console=cons)
 
 
 @app.command()

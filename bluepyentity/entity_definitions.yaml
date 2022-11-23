@@ -134,4 +134,12 @@ SimulationCampaignConfiguration:
   _inherits:
     - _Entity
 
-
+EModelScript:
+  name: null
+  etype_annotation_id: null
+  iteration_tag: null
+  holding_current: null
+  threshold_current: null
+  distribution: null
+  _inherits:
+    - _Entity
