@@ -141,5 +141,6 @@ EModelScript:
   holding_current: null
   threshold_current: null
   distribution: null
+  _id_fields: ['etype_annotation_id', ]
   _inherits:
     - _Entity
