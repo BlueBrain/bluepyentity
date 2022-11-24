@@ -116,18 +116,21 @@ class Resource:
                 f"'{bucket}' with an id of: '{existing.id}'"
             )
 
-        with utils.silence_stdout():
-            self._forge.register(self.resource)
+        try:
+            schema_id = self._forge._model.schema_id(self.type)
+        except ValueError:
+            schema_id = None
 
-        # KnowledgeGraphForge(debug=True) does not make register raise (see: DKE-1065)
-        if self.resource._last_action.succeeded:  # pylint: disable=protected-access
-            return
-
-        raise RuntimeError(self.resource._last_action.message)  # pylint: disable=protected-access
+        try:
+            self._forge.register(self.resource, schema_id=schema_id)
+        except Exception as err:
+            raise RuntimeError(err) from err
 
     def _check_if_valid(self):
         self._check_required()
-        self._check_schema()
+        # NOTE: should this be removed, if schemas are handled by the backend?
+        # Should extra attributes be allowed? Currently, the backend allows them.
+        # self._check_schema()
 
     def _check_required(self):
         """Check that the required items are defined."""
