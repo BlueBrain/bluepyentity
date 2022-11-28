@@ -18,6 +18,10 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 VERSION = module.__version__
 
+EXTRA_KRB = [
+    "requests_kerberos",
+]
+
 setup(
     name="bluepyentity",
     author="'Blue Brain Project, EPFL'",
@@ -50,7 +54,10 @@ setup(
         "bluepyentity": ["*.yaml"],
     },
     python_requires=">=3.7",
-    extras_require={"docs": ["sphinx", "sphinx-bluebrain-theme"]},
+    extras_require={
+        "docs": ["sphinx", "sphinx-bluebrain-theme"],
+        "krb": EXTRA_KRB,
+    },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Education",
