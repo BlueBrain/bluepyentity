@@ -117,13 +117,7 @@ def _download_distribution_file(forge, distribution, target_path, create_links_i
 
     if filesystem_location:
         L.debug("Distribution with file %s has atLocation.", target_path.name)
-        source_path = filesystem_location
-        if source_path.exists():
-            _copy_file(source_path, target_path, create_links_if_possible)
-        else:
-            forge.download(
-                distribution, follow="contentUrl", path=target_path.parent, cross_bucket=True
-            )
+        _copy_file(filesystem_location, target_path, create_links_if_possible)
     else:
         L.debug("Distribution with file %s doesn't have atLocation.", target_path.name)
         forge.download(
