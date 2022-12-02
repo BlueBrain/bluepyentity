@@ -7,7 +7,7 @@ from typing import Dict, Optional, Union
 from kgforge.core import Resource
 
 from bluepyentity.exceptions import BluepyEntityError
-from bluepyentity.utils import without_file_prefix
+from bluepyentity.utils import without_file_prefix, write_json
 
 L = logging.getLogger(__name__)
 
@@ -17,11 +17,42 @@ def materialize(
 ) -> Dict[str, Dict[str, str]]:
     """Materialize a KG dataset with grouped data.
 
+    Materialization generated a nested dictionary for each grouping level in the json dataset.
+
     Args:
         resource_id: Resource id.
+        output_file: Optional output file to write the materialized dictionary.
 
     Returns:
         A nested dictionary of materialized entries.
+
+    Example:
+        {
+            'mtypes': {
+                'http://uri.interlex.org/base/ilx_0383198': {
+                    'label': 'L23_BP',
+                    'etypes': {
+                        'http://uri.interlex.org/base/ilx_0738202': {
+                            'label': 'dSTUT',
+                            'path': 'L23_BP-DSTUT_densities_v3.nrrd'
+                        }
+                    }
+                },
+                'http://uri.interlex.org/base/ilx_0383202': {
+                    'label': 'L23_LBC',
+                    'etypes': {
+                        'http://uri.interlex.org/base/ilx_0738200': {
+                            'label': 'bSTUT',
+                            'path': 'L23_LBC-BSTUT_densities_v3.nrrd'
+                        },
+                        'http://uri.interlex.org/base/ilx_0738198': {
+                            'label': 'cSTUT',
+                            'path': 'L23_LBC-CSTUT_densities_v3.nrrd'
+                        }
+                    }
+                }
+            }
+        }
     """
     ontology_to_materializer = {
         "https://bbp.epfl.ch/ontologies/core/bmo/METypeDensity": materialize_me_type_densities,
@@ -56,13 +87,8 @@ def materialize_me_type_densities(
         A nested dictionary with two levels:
             1st level: Keys: MType identifiers, Values: EType groups corresponding to that MType
             2nd level: Keys: EType identifiers, Values: Dictionaries with path to me density.
-
-        Example:
-            {
-
-            }
     """
-    resource = _get_resource(resource_or_id)
+    resource = _get_resource(forge, resource_or_id)
 
     dataset = load_json_file_from_resource(resource)
 
@@ -91,7 +117,7 @@ def materialize_me_type_densities(
     return groups
 
 
-def _get_resource(resource_or_id: Union[Resource, str]):
+def _get_resource(forge, resource_or_id: Union[Resource, str]):
     if isinstance(resource_or_id, Resource):
         return resource_or_id
     return forge.retrieve(resource_or_id, cross_bucket=True)

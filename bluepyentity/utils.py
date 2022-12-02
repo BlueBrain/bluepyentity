@@ -2,9 +2,12 @@
 
 """useful utilities"""
 import getpass
+import json
+import os
 import sys
 import termios
 from collections import OrderedDict
+from typing import Any, Dict
 
 
 def visit_container(container, func, dict_func=None):
@@ -90,3 +93,9 @@ def without_file_prefix(path: str) -> str:
     if path.startswith(prefix):
         return path[len(prefix) :]
     return path
+
+
+def write_json(filepath: os.PathLike, data: Dict[Any, Any]) -> None:
+    """Write json file."""
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
