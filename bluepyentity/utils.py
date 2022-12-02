@@ -82,3 +82,11 @@ def get_secret(prompt):
         stream.flush()  # issue7208
 
     return passwd
+
+
+def without_file_prefix(path: str) -> str:
+    """Return the path without the file:// prefix."""
+    prefix = "file://"
+    if path.startswith(prefix):
+        return path[len(prefix) :]
+    return path
