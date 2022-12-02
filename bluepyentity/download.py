@@ -102,7 +102,7 @@ def _get_filesystem_location(distribution):
         L.debug("Distribution object doesn't have an atLocation.")
         return None
 
-    location = Path(_remove_prefix("file://", location))
+    location = Path(without_file_prefix(location))
 
     if location.exists():
         L.debug("Distribution atLocation location path %s found.", location)
