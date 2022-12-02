@@ -17,7 +17,7 @@ def materialize(
 ) -> Dict[str, Dict[str, str]]:
     """Materialize a KG dataset with grouped data.
 
-    Materialization generated a nested dictionary for each grouping level in the json dataset.
+    Materialization generates a nested dictionary for each grouping level in the json dataset.
 
     Args:
         resource_id: Resource id.
