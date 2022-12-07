@@ -82,7 +82,10 @@ def _is_downloadable(distribution):
         L.warning("Distribution %s is not a valid resource. Skipped.", distribution)
         return False
 
-    if distribution.type != "DataDownload":
+    if distribution.type not in (
+        "DataDownload",
+        "schema:DataDownload",
+    ):
         L.warning("Distribution %s is not a DataDownload. Skipped.", distribution)
         return False
 
@@ -93,24 +96,31 @@ def _is_downloadable(distribution):
     return True
 
 
-def _has_gpfs_location(distribution):
+def _get_filesystem_location(distribution):
+    """Return a filesystem location if it's available and exists, otherwise None."""
     try:
-        return distribution.atLocation.location.startswith("file:///gpfs")
+        location = distribution.atLocation.location
     except AttributeError:
-        return False
+        L.debug("Distribution object doesn't have an atLocation.")
+        return None
+
+    location = Path(_remove_prefix("file://", location))
+
+    if location.exists():
+        L.debug("Distribution atLocation location path %s found.", location)
+        return location
+
+    L.debug("Distribution atLocation location path %s does not exist.", location)
+    return None
 
 
 def _download_distribution_file(forge, distribution, target_path, create_links_if_possible):
 
-    if _has_gpfs_location(distribution):
+    filesystem_location = _get_filesystem_location(distribution)
+
+    if filesystem_location:
         L.debug("Distribution with file %s has atLocation.", target_path.name)
-        source_path = Path(_remove_prefix("file://", distribution.atLocation.location))
-        if source_path.exists():
-            _copy_file(source_path, target_path, create_links_if_possible)
-        else:
-            forge.download(
-                distribution, follow="contentUrl", path=target_path.parent, cross_bucket=True
-            )
+        _copy_file(filesystem_location, target_path, create_links_if_possible)
     else:
         L.debug("Distribution with file %s doesn't have atLocation.", target_path.name)
         forge.download(
