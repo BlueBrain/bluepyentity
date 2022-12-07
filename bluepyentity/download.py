@@ -82,7 +82,10 @@ def _is_downloadable(distribution):
         L.warning("Distribution %s is not a valid resource. Skipped.", distribution)
         return False
 
-    if distribution.type != "DataDownload":
+    if distribution.type not in (
+        "DataDownload",
+        "schema:DataDownload",
+    ):
         L.warning("Distribution %s is not a DataDownload. Skipped.", distribution)
         return False
 
