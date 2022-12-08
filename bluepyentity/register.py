@@ -222,7 +222,7 @@ class DetailedCircuit(Resource):
         # Define brainLocation as suggested in DKE-1062
         if brain_region := definition.get("brainRegion"):
             brain_region = self._forge.retrieve(brain_region, cross_bucket=True)
-            brain_region = self._forge.reshape(brain_region, ["id", "label"])
+            brain_region = self._forge.reshape(brain_region, ["id", "label", "notation"])
             patch["brainLocation"] = {
                 "type": "BrainLocation",
                 "brainRegion": brain_region,
