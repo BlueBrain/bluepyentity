@@ -3,15 +3,14 @@
 """register cli entry point"""
 
 import click
-
 from rich import console, pretty
 
 import bluepyentity
-
 from bluepyentity import utils
 
-
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
+
+
 @click.group()
 def app():
     """Registration Mangement"""
@@ -36,18 +35,28 @@ def entity(ctx, resource, dry_run):
     )
 
     resource = utils.parse_dict_from_file(resource)
-    resources = (resource, ) if isinstance(resource, dict) else resource
+    resources = (resource,) if isinstance(resource, dict) else resource
 
-    registrations = [bluepyentity.register.register(forge, resource, dry_run=dry_run)
-                     for resource in resources]
-    ids = [(resource, registration.resource.id) for resource, registration in zip(resources, registrations)]
+    registrations = [
+        bluepyentity.register.register(forge, resource, dry_run=dry_run) for resource in resources
+    ]
+    if dry_run:
+        printout = [
+            {"DEFINITION": resource, "PARSED_RESOURCE": forge.as_json(registration.resource)}
+            for resource, registration in zip(resources, registrations)
+        ]
+    else:
+        printout = [
+            (resource, registration.resource.id)
+            for resource, registration in zip(resources, registrations)
+        ]
 
-    pretty.pprint(ids, console=cons)
+    pretty.pprint(printout, console=cons)
 
 
 @app.command()
 @click.pass_context
-def types(ctx):
+def types(_):
     """List known entitye types"""
     cons = console.Console()
     entities = utils.get_entity_definitions()

@@ -117,7 +117,7 @@ class Resource:
             )
 
         try:
-            schema_id = self._forge._model.schema_id(self.type)
+            schema_id = self._forge._model.schema_id(self.type)  # pylint: disable=protected-access
         except ValueError:
             schema_id = None
 
@@ -168,8 +168,9 @@ class Resource:
             ret = []
             for path in distribution:
                 if isinstance(path, dict):
-                    resource = self._forge.attach(path=path['path'],
-                                                  content_type=path['content_type'])
+                    resource = self._forge.attach(
+                        path=path["path"], content_type=path["content_type"]
+                    )
                 else:
                     resource = self._forge.attach(path)
                 ret.append(resource)
@@ -332,11 +333,8 @@ def register(forge, resource_defition, dry_run=False):
     else:
         raise NotImplementedError(f"Unsupported type: '{res_type}'")
 
-    if dry_run:
-        # Log w/ critical level to ensure always being printed
-        L.critical("%s:\n%s", res_type, resource.resource)
-        return
+    if not dry_run:
+        resource.register()
+        L.info("'%s' successfully registered with id: '%s'", res_type, resource.resource.id)
 
-    resource.register()
-    L.info("'%s' successfully registered with id: '%s'", res_type, resource.resource.id)
     return resource

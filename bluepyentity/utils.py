@@ -151,9 +151,12 @@ def get_default_params(type_):
 
 
 def get_entity_definitions():
-    '''Get all known entities'''
+    """Get all known entities"""
     entities = parse_dict_from_file(ENTITIES_PATH)
-    skipped_entities = ['_Entity', 'EntityMixin', ]
+    skipped_entities = [
+        "_Entity",
+        "EntityMixin",
+    ]
     for se in skipped_entities:
         if se in entities:
             del entities[se]
