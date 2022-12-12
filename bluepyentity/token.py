@@ -2,12 +2,14 @@
 
 """token handling"""
 import datetime
+import functools
 import getpass
 import logging
 import os
 
 import jwt
 import keyring
+from keyring.errors import NoKeyringError
 
 import bluepyentity.utils
 
@@ -24,8 +26,19 @@ def _token_name(env):
     return f"kgforge:{env}"
 
 
+def _get_token_environment():
+    L.debug("Attempting to get ticket with from the NEXUS_TOKEN enviroment")
+    if "NEXUS_TOKEN" in os.environ:
+        token = os.environ["NEXUS_TOKEN"]
+        if not is_valid(token):
+            L.warning("NEXUS_TOKEN in the env is not valid, either set a working one or remove it")
+        return token
+    return None
+
+
 def _get_token_kerberos():
-    # pylint: disable=import-outside-toplevel
+    L.debug("Attempting to get ticket with kerberos")
+    # pylint: disable=import-outside-toplevel, import-error
     try:
         from requests_kerberos import OPTIONAL, HTTPKerberosAuth
     except ImportError:
@@ -59,43 +72,54 @@ def _get_token_kerberos():
         return None
 
 
+def _get_token_keyring(env, username):
+    L.debug("Attempting to get ticket from the keyring")
+    token = None
+    try:
+        token = keyring.get_password(_token_name(env), username)
+    except NoKeyringError:
+        pass
+
+    return token
+
+
 def set_token(env, username=None, token=None):
     """set the token for the username and environment
 
-    if `token` is none, it is asked for interactively
+    if `token` is invalid, it is asked for interactively
     """
     username = _getuser(username)
 
-    if token is None:
-        token = _get_token_kerberos()
-        if not is_valid(token):
-            token = bluepyentity.utils.get_secret(prompt="Token: ")
+    token = bluepyentity.utils.get_secret(prompt="Token: ")
 
     if not is_valid(token):
         L.error("The token could not be decoded or has expired. the length was %d", len(token))
-        return
+        return None
 
-    keyring.set_password(_token_name(env), username, token)
+    try:
+        keyring.set_password(_token_name(env), username, token)
+    except NoKeyringError:
+        pass
+
+    return token
 
 
 def get_token(env, username=None):
-    """try and get the token
-
-    * First from the NEXUS_TOKEN environment variable
-    * then from the `keyring`
-    * finally, interactively
-    """
-    if "NEXUS_TOKEN" in os.environ:
-        if not is_valid(os.environ["NEXUS_TOKEN"]):
-            L.error("NEXUS_TOKEN in the env is not valid, either set a working one or remove it")
-        return os.environ["NEXUS_TOKEN"]
-
+    """try and get a token, will fall back to interactive if necessary"""
     username = _getuser(username)
 
-    token = keyring.get_password(_token_name(env), username)
+    token = None
+    for func in (
+        functools.partial(_get_token_keyring, env, username),
+        _get_token_environment,
+        _get_token_kerberos,
+    ):
+        if is_valid(token):
+            break
+        token = func()
 
     if not is_valid(token):
-        set_token(env=env, username=username)
+        token = set_token(env=env, username=username)
 
     return token
 
@@ -109,7 +133,7 @@ def is_valid(token):
     """check if token is valid
 
     * if it decodes properly
-    * if it has expired
+    * if it has not expired
     """
     if not token:
         return False
