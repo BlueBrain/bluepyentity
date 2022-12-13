@@ -50,6 +50,9 @@ setup(
         "more-itertools",
     ],
     packages=find_packages(),
+    package_data={
+        "bluepyentity": ["*.yaml"],
+    },
     python_requires=">=3.7",
     extras_require={
         "docs": ["sphinx", "sphinx-bluebrain-theme"],

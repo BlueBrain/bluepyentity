@@ -1,0 +1,12 @@
+type: Simulation
+endedAtTime: 2019-10-29T10:48:55.207235
+name: Test Simulation
+startedAtTime: 2019-10-25T12:35:09.497144
+status: Done
+simulationConfigPath: /dummy/path2/
+#upload: # example on how to upload files
+#  - /path/to/a/file.json
+#  - /path/to/another/file.csv
+used:
+  - https://bbp.epfl.ch/nexus/v1/resources/nse/test2/_/k_ca_scan_4011
+  - https://bbp.epfl.ch/nexus/v1/resources/nse/test2/_/O1.v6a.test

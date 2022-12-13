@@ -1,0 +1,146 @@
+# Collection of entity-management classes and their relations
+# - the _inherits and _id_fields are parsed away in the parser
+# - the goal is to get all this information (schema) from Nexus so that this file is not needed
+# --- in that case, I'd expect the "null" values to contain type hints or similar
+# - it would probably be better/easier if each of the files had "_attrs" key that holds the attributes
+
+# COMMON
+
+_Entity:
+  name: null
+  description: null
+  distribution: null
+  _inherits:
+    - EntityMixIn
+
+Activity:
+  name: null
+  status: null # Pending/Running,Done/Failed
+  used: null
+  generated: null
+  startedAtTime: null
+  endedAtTime: null
+  wasStartedBy: null
+  wasInformedBy: null
+  wasInfluencedBy: null
+  _id_fields:
+    - used
+    - generated
+    - wasStartedBy
+    - wasInformedBy
+    - wasInfluencedBy
+
+AnalysisReport:
+  distribution: null
+  image: null
+
+  # Added
+  derivation: null
+  types: null
+
+  _inherits:
+    - _Entity
+
+EntityMixIn:
+  wasAttributedTo: null
+  wasGeneratedBy: null
+  wasDerivedFrom: null
+  dateCreated: null
+
+  _id_fields:
+    - wasAttributedTo
+    - wasGeneratedBy
+    - wasDerivedFrom
+
+ModelInstance:
+  modelOf: null
+  brainLocation: null
+  subject: null
+
+  _id_fields:
+    - subject
+    - brainLocation
+  _inherits:
+    - _Entity
+
+# CIRCUIT
+
+DetailedCircuit:
+  circuitConfigPath: null
+  circuitType: null
+
+  # Removed
+  #circuitBase: null
+  #nodeCollection: null
+  #edgeCollection: null
+  #target: null
+
+  # Added
+  atlasRelease: null
+
+  _id_fields:
+    - atlasRelease
+  _inherits:
+    - ModelInstance
+
+DetailedCircuitValidation:
+  _inherits:
+    - Activity
+
+DetailedCircuitValidationReport:
+  _inherits:
+    - AnalysisReport
+
+# SIMULATION
+
+Simulation:
+  used: null
+  spikes: null
+  generated: null
+  jobId: null
+  path: null
+  params: null
+
+  # Added
+  simulationConfigPath: null
+
+  _id_fields:
+    - generated
+    - spikes
+    - used
+  _inherits:
+    - Activity
+
+SimulationCampaignGeneration:
+  used: null
+  generated: null
+  _id_fields:
+    - used
+    - generated
+  _inherits:
+    - Activity
+
+SimulationConfiguration:
+  circuit: null
+  _id_fields:
+    - circuit
+  _inherits:
+    - _Entity
+
+SimulationCampaignConfiguration:
+  configuration: null
+  template: null
+  target: null
+  _inherits:
+    - _Entity
+
+EModelScript:
+  name: null
+  etype_annotation_id: null
+  iteration_tag: null
+  holding_current: null
+  threshold_current: null
+  distribution: null
+  _id_fields: ['etype_annotation_id', ]
+  _inherits:
+    - _Entity
