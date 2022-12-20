@@ -7,7 +7,7 @@ from typing import Dict, Optional, Union
 from kgforge.core import Resource
 
 from bluepyentity.exceptions import BluepyEntityError
-from bluepyentity.utils import without_file_prefix, write_json
+from bluepyentity.utils import url_with_revision, without_file_prefix, write_json
 
 L = logging.getLogger(__name__)
 
@@ -102,7 +102,8 @@ def materialize_me_type_densities(
 
             etype_id, etype_label = etype_part["@id"], etype_part["label"]
 
-            density_id = etype_part["hasPart"][0]["@id"]
+            density_id = _get_density_id(density_entry=etype_part["hasPart"][0])
+
             density_path = _get_density_resource_path(forge, density_id)
 
             etype_groups[etype_id] = {"label": etype_label, "path": density_path}
@@ -121,6 +122,16 @@ def _get_resource(forge, resource_or_id: Union[Resource, str]):
     if isinstance(resource_or_id, Resource):
         return resource_or_id
     return forge.retrieve(resource_or_id, cross_bucket=True)
+
+
+def _get_density_id(density_entry: Dict[str, str]) -> str:
+    """Return the density id with the respective revision if any."""
+    density_id = density_entry["@id"]
+
+    if "_rev" in density_entry:
+        return url_with_revision(density_id, density_entry["_rev"])
+
+    return density_id
 
 
 def _get_density_resource_path(forge, resource_id: str):
