@@ -10,6 +10,7 @@ from more_itertools import always_iterable
 
 # user defined or tmp would be better
 DOWNLOADED_CONTENT_PATH = Path(".downloaded_content")
+_ATTR_FETCHED = "_resource_updated_from_nexus"
 
 
 class ResolvingResource:
@@ -27,6 +28,7 @@ class ResolvingResource:
         """
         self._wrapped = resource
         self._retriever = retriever
+        setattr(self, _ATTR_FETCHED, False)
 
     @property
     def wrapped(self):
@@ -37,11 +39,11 @@ class ResolvingResource:
         """Retrieve the resource if it's not synchronized."""
         if (
             self._retriever
-            and getattr(self._wrapped, "_synchronized", None) is False
+            and getattr(self, _ATTR_FETCHED, None) is False
             and hasattr(self._wrapped, "id")
         ):
             self._wrapped = self._retriever(self._wrapped.id)
-            assert self._wrapped._synchronized is True  # pylint:disable = protected-access
+            setattr(self, _ATTR_FETCHED, True)
             return True
         return False
 
