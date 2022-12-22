@@ -2,9 +2,15 @@
 
 """useful utilities"""
 import getpass
+import json
+import os
 import sys
 import termios
 from collections import OrderedDict
+from typing import Any, Dict
+from urllib.parse import urlparse
+
+from bluepyentity.exceptions import BluepyEntityError
 
 
 def visit_container(container, func, dict_func=None):
@@ -82,3 +88,44 @@ def get_secret(prompt):
         stream.flush()  # issue7208
 
     return passwd
+
+
+def without_file_prefix(path: str) -> str:
+    """Return the path without the file:// prefix."""
+    prefix = "file://"
+    if path.startswith(prefix):
+        return path[len(prefix) :]
+    return path
+
+
+def write_json(filepath: os.PathLike, data: Dict[Any, Any]) -> None:
+    """Write json file."""
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
+def url_get_revision(url: str) -> bool:
+    """Get the revision number from a url or None otherwise."""
+    url = urlparse(url)
+
+    if url.query:
+        return int(url.query.replace("rev=", ""))
+
+    return None
+
+
+def url_with_revision(url: str, revision: int) -> str:
+    """Attach a revision to a url.
+
+    Raises:
+        BluepyEntityError if the url has already a revision which is different than the input.
+    """
+    url_revision = url_get_revision(url)
+
+    if url_revision:
+        if url_revision == revision:
+            return url
+        raise BluepyEntityError(
+            f"Url '{url}' revision '{url_revision}' does not match the input '{revision}' one."
+        )
+    return f"{url}?rev={revision}"

@@ -12,6 +12,7 @@ from kgforge.core import Resource
 from more_itertools import always_iterable
 
 from bluepyentity.exceptions import BluepyEntityError
+from bluepyentity.utils import without_file_prefix
 
 L = logging.getLogger(__name__)
 
@@ -104,7 +105,7 @@ def _get_filesystem_location(distribution):
         L.debug("Distribution object doesn't have an atLocation.")
         return None
 
-    location = Path(_remove_prefix("file://", location))
+    location = Path(without_file_prefix(location))
 
     if location.exists():
         L.debug("Distribution atLocation location path %s found.", location)
@@ -126,13 +127,6 @@ def _download_distribution_file(forge, distribution, target_path, create_links_i
         forge.download(
             distribution, follow="contentUrl", path=target_path.parent, cross_bucket=True
         )
-
-
-def _remove_prefix(prefix: str, path: str) -> str:
-    """Return the path without the prefix."""
-    if path.startswith(prefix):
-        return path[len(prefix) :]
-    return path
 
 
 def _copy_file(source_path: Path, target_path: Path, create_link: bool = True) -> Path:
