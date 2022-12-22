@@ -1,22 +1,10 @@
 #!/usr/bin/env python
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-import importlib.util
-import sys
-
 from setuptools import setup, find_packages
 
-# read the contents of the README file
 with open("README.rst", encoding="utf-8") as f:
     README = f.read()
-
-spec = importlib.util.spec_from_file_location(
-    "bluepyentity.version",
-    "bluepyentity/version.py",
-)
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
-VERSION = module.__version__
 
 EXTRA_KRB = [
     "requests_kerberos",
@@ -25,7 +13,6 @@ EXTRA_KRB = [
 setup(
     name="bluepyentity",
     author="'Blue Brain Project, EPFL'",
-    version=VERSION,
     description="NEXUS Productivity Layer",
     long_description=README,
     long_description_content_type="text/x-rst",
@@ -55,6 +42,12 @@ setup(
         "docs": ["sphinx", "sphinx-bluebrain-theme"],
         "krb": EXTRA_KRB,
     },
+    use_scm_version={
+        "local_scheme": "no-local-version",
+    },
+    setup_requires=[
+        "setuptools_scm",
+    ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Education",

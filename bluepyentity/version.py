@@ -1,6 +1,5 @@
-# SPDX-License-Identifier: LGPL-3.0-or-later
+"""version"""
+from pkg_resources import get_distribution
 
-"""Package version."""
-
-VERSION = "0.0.1.dev0"
+VERSION = get_distribution("bluepyentity").version
 __version__ = VERSION

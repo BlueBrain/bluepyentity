@@ -1,21 +1,24 @@
 Changelog
 =========
 
-Version 0.1
------------
+
+Version 0.0.1
+-------------
 
 New Features
 ~~~~~~~~~~~~
-- Example code in Python
-
-
-Bug Fixes
-~~~~~~~~~
-- Describe Bug Fixes here
-- Remove this subsection if there are no Bug Fixes
-
+ - Add `bluepyentity download` to download distributions
+ - added `info` command, and `token decode`
+ - initial kerberos version, install using pip install bluepyentity[krb]
+ - add staging as an environment
+ - add bucket support
+ - Example code in Python
 
 Improvements
 ~~~~~~~~~~~~
-- Allow passing store overrides and debug flag to create_forge().
-- Extend download() to treat distributions separately.
+ - Allow passing store overrides and debug flag to create_forge().
+ - Extend download() to treat distributions separately.
+
+
+Version 0.0.0
+-------------
