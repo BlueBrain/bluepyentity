@@ -4,9 +4,9 @@
 import getpass
 import sys
 import termios
+import urllib.parse
 from collections import OrderedDict
 from typing import Optional
-from urllib.parse import urlparse
 
 from bluepyentity.exceptions import BluepyEntityError
 
@@ -90,11 +90,10 @@ def get_secret(prompt):
 
 def url_get_revision(url: str) -> Optional[int]:
     """Get the revision number from a url or None otherwise."""
-    url = urlparse(url)
-
-    if url.query:
-        return int(url.query.replace("rev=", ""))
-
+    url = urllib.parse.urlparse(url)
+    data = urllib.parse.parse_qs(url.query)
+    if "rev" in data:
+        return int(data["rev"][0])
     return None
 
 
@@ -117,5 +116,5 @@ def url_with_revision(url: str, revision: int) -> str:
 
 def url_without_revision(url: str) -> str:
     """Return the url without the revision query."""
-    url = urlparse(url)
+    url = urllib.parse.urlparse(url)
     return url._replace(query="").geturl()
