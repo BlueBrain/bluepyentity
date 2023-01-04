@@ -5,6 +5,7 @@ import getpass
 import sys
 import termios
 from collections import OrderedDict
+from typing import Optional
 from urllib.parse import urlparse
 
 from bluepyentity.exceptions import BluepyEntityError
@@ -87,7 +88,7 @@ def get_secret(prompt):
     return passwd
 
 
-def url_get_revision(url: str) -> bool:
+def url_get_revision(url: str) -> Optional[int]:
     """Get the revision number from a url or None otherwise."""
     url = urlparse(url)
 
