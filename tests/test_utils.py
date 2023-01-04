@@ -18,8 +18,16 @@ def test_url_get_revision(url, expected):
 @pytest.mark.parametrize(
     "url,revision,expected",
     [
-        ("my-url", 5, "my-url?rev=5"),
-        ("my-url?rev=5", 5, "my-url?rev=5"),
+        (
+            "http://api.brain-map.org/api/v2/data/Structure/997",
+            10,
+            "http://api.brain-map.org/api/v2/data/Structure/997?rev=10",
+        ),
+        (
+            "http://api.brain-map.org/api/v2/data/Structure/997?rev=10",
+            10,
+            "http://api.brain-map.org/api/v2/data/Structure/997?rev=10",
+        ),
     ],
 )
 def test_url_with_revision(url, revision, expected):
@@ -36,8 +44,14 @@ def test_url_with_revision__mismatch():
 @pytest.mark.parametrize(
     "url,expected",
     [
-        ("my-url", "my-url"),
-        ("my-url?rev=1", "my-url"),
+        (
+            "http://api.brain-map.org/api/v2/data/Structure/997",
+            "http://api.brain-map.org/api/v2/data/Structure/997",
+        ),
+        (
+            "http://api.brain-map.org/api/v2/data/Structure/997?rev=10",
+            "http://api.brain-map.org/api/v2/data/Structure/997",
+        ),
     ],
 )
 def test_url_without_revision(url, expected):

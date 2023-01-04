@@ -116,4 +116,5 @@ def url_with_revision(url: str, revision: int) -> str:
 
 def url_without_revision(url: str) -> str:
     """Return the url without the revision query."""
-    return urlparse(url).path
+    url = urlparse(url)
+    return url._replace(query="").geturl()
