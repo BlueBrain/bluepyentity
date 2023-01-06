@@ -56,9 +56,9 @@ def test_open_circuit_snap():
 def test_open_simulation_snap():
     with patch("bluepysnap.Simulation") as patched:
         entity = MagicMock()
-        entity.path = "file:///fake/path"
+        entity.simulationConfigPath.url = "file:///fake/path/to/config.json"
         test_module.open_simulation_snap(entity)
-        patched.assert_called_once_with("/fake/path/sonata/simulation_config.json")
+        patched.assert_called_once_with("/fake/path/to/config.json")
 
 
 def test_open_morphology_release():
