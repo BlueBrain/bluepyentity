@@ -99,8 +99,7 @@ def open_simulation_snap(entity):
     """
     import bluepysnap
 
-    # TODO: Same as with open_circuit_snap: should abstain from hard coded paths
-    config_path = _get_path(entity.path) / "sonata/simulation_config.json"
+    config_path = _get_path(entity.simulationConfigPath.url)
     return bluepysnap.Simulation(str(config_path))
 
 
