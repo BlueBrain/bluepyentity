@@ -59,7 +59,7 @@ ModelInstance:
 
   _id_fields:
     - subject
-    - brainLocation
+    #- brainLocation
   _inherits:
     - _Entity
 

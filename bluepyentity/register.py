@@ -37,18 +37,63 @@ def _wrap_id(id_, type_):
 
 def _wrap_id_fetch(id_, forge):
     """Find items with given IDs in Nexus and wrap them as objects."""
-    if _is_url(id_):
-        try:
-            return _wrap_id(id_, forge.retrieve(id_, cross_bucket=True).type)
-        except kgforge.core.commons.exceptions.RetrievalError as e:
-            raise RuntimeError(e) from e
-    elif isinstance(id_, list):
-        return [_wrap_id_fetch(i, forge) for i in id_]
+    try:
+        return _wrap_id(id_, forge.retrieve(id_, cross_bucket=True).type)
+    except kgforge.core.commons.exceptions.RetrievalError as e:
+        raise RuntimeError(e) from e
 
-    return id_
+
+def _process_id_field(id_field, forge):
+    if isinstance(id_field, list):
+        return [_process_id_field(id_, forge) for id_ in id_field]
+    if isinstance(id_field, str):
+        _wrap_id_fetch(id_field, forge)
+    if isinstance(id_field, dict):
+        # For now expect full definition
+        # - need to see how to make this work with the class Resource below
+        # - e.g., how to handle if type is a list [AtlasRelease, BrainAtlasRelease]
+        return kgforge.core.Resource.from_json(id_field)
+
+    raise TypeError("Incompatible type: {type(id_field)}")
+
+
+def _forge_register(forge, resource):
+    try:
+        schema_id = forge._model.schema_id(type)  # pylint: disable=protected-access
+    except ValueError:
+        schema_id = None
+
+    try:
+        forge.register(resource, schema_id=schema_id)
+    except Exception as err:
+        raise RuntimeError(err) from err
+
+
+def _register_resource(resource):
+    res = resource.resource
+    for key in resource.possible_ids:
+        subres = getattr(res, key, None)
+        if subres is not None:
+            subres = register_subfield_if_needed(resource._forge, subres)
+            setattr(res, key, subres)
+
+    _forge_register(resource._forge, res)
+
+
+def register_subfield_if_needed(forge, value):
+    # NOTE: register a field if it's an "id_field" but does not have an id
+    if isinstance(value, list):
+        return [register_subfield_if_needed(forge, v) for v in value]
+    if isinstance(value, kgforge.core.Resource) and not hasattr(value, "id"):
+        _forge_register(forge, value)
+        value = _wrap_id(value.id, value.type)
+
+    return value
 
 
 # NOTE: Should this work with bluepyentity.nexus.entityEntity?
+
+
 class Resource:
     """Base class for resources to register."""
 
@@ -192,8 +237,8 @@ class Resource:
         patch = {}
         for field in self.possible_ids:
             value = definition.get(field)
-            if isinstance(value, (str, list)):
-                patch[field] = _wrap_id_fetch(value, self._forge)
+            if value is not None:
+                patch[field] = _process_id_field(value, self._forge)
 
         return dict(definition, **patch)
 
@@ -314,27 +359,37 @@ class SimulationCampaignConfiguration(Resource):
         return dict(definition, **patch)
 
 
-def register(forge, resource_defition, dry_run=False):
+def parse_resource(forge, definition):
+    # NOTE: idea here was to reuse this for register the resources inside the resources
+    res_type = definition.get("type", None)
+    # TODO: what to do here (happens if the resource has multiple types)?
+    if not isinstance(res_type, str):
+        __import__("pdb").set_trace()
+
+    if cls := getattr(MODULE, res_type, None):
+        resource = cls(definition, forge)
+    elif _is_supported_type(res_type):
+        resource = Resource(definition, forge)
+    else:
+        raise NotImplementedError(f"Unsupported type: '{res_type}'")
+
+    return resource
+
+
+def register(forge, resource_definition, dry_run=False):
     """Register a Resource in Nexus.
 
     The parameters of the resource are given in a file.
 
     Args:
         forge (kgforge.core.KnowledgeGraphForge): nexus-forge instance.
-        resource_defition(dict): Definition of the resource
-        dry_run (bool): Do not register but print the parsed resource.
+        resource_definition(dict): Definition of the resource
+        dry_run (bool): Do not register but parse the resource
     """
-    res_type = resource_defition.get("type", None)
-
-    if cls := getattr(MODULE, res_type, None):
-        resource = cls(resource_defition, forge)
-    elif _is_supported_type(res_type):
-        resource = Resource(resource_defition, forge)
-    else:
-        raise NotImplementedError(f"Unsupported type: '{res_type}'")
+    resource = parse_resource(forge, resource_definition)
 
     if not dry_run:
-        resource.register()
-        L.info("'%s' successfully registered with id: '%s'", res_type, resource.resource.id)
+        _register_resource(resource)
+        L.info("'%s' successfully registered with id: '%s'", resource.type, resource.resource.id)
 
     return resource
