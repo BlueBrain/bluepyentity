@@ -49,14 +49,18 @@ def _extra_print(cons, store_metadata):
 @click.option("--raw-resource", type=bool, default=False)
 @click.argument("id_")
 @click.pass_context
-def info(ctx, id_, metadata, raw_resource):
+def app(ctx, id_, metadata, raw_resource):
     """get info on `id` from NEXUS"""
-    cons = console.Console()
 
     user = ctx.meta["user"]
     env = ctx.meta["env"]
     bucket = ctx.meta["bucket"]
+    info(user, env, bucket, id_, metadata, raw_resource)
 
+
+def info(user, env, bucket, id_, metadata, raw_resource):
+    ''' get info on `id` without a click context.'''
+    cons = console.Console()
     token = bluepyentity.token.get_token(env=env, username=user)
     forge = bluepyentity.environments.create_forge(env, token, bucket)
 
