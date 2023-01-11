@@ -126,7 +126,7 @@ class Explorer(App):
             if len(indices) > 1:
                 # add node
                 return add_to_keytree(tree[indices[0]], indices[1:], value)
-            # add leave
+            # add leaf
             tree[indices[0]] = value
 
         for url, hint in zip(self._urls, needed_hints):
@@ -158,7 +158,7 @@ class Explorer(App):
                 agg.append(adt)
             return agg
         urls = leaves(cur_kt, [])
-        if len(cur_kt) == 0:
+        if not cur_kt:
             # invalid letter
             return
 
