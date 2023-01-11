@@ -55,6 +55,16 @@ One can look at the associated information of an identifier with:
 
     bluepyentity info SOME_ID
 
+Explorer:
+~~~~~~~~~
+
+One can navigate the links of an identifier with:
+
+
+.. code-block:: bash
+
+    bluepyentity explorer SOME_ID
+
 .. _`keyring`: https://github.com/jaraco/keyring
 
 
