@@ -7,7 +7,7 @@ import logging
 
 import click
 
-from bluepyentity.app import download, info, project, token, explorer
+from bluepyentity.app import download, explorer, info, project, token
 from bluepyentity.version import VERSION
 
 USER = getpass.getuser()

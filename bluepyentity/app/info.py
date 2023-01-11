@@ -51,7 +51,6 @@ def _extra_print(cons, store_metadata):
 @click.pass_context
 def app(ctx, id_, metadata, raw_resource):
     """get info on `id` from NEXUS"""
-
     user = ctx.meta["user"]
     env = ctx.meta["env"]
     bucket = ctx.meta["bucket"]
@@ -59,7 +58,7 @@ def app(ctx, id_, metadata, raw_resource):
 
 
 def info(user, env, bucket, id_, metadata, raw_resource):
-    ''' get info on `id` without a click context.'''
+    """get info on `id` without a click context."""
     cons = console.Console()
     token = bluepyentity.token.get_token(env=env, username=user)
     forge = bluepyentity.environments.create_forge(env, token, bucket)

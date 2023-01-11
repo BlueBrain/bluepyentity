@@ -1,4 +1,4 @@
-''' Display KG entity as a tree. Press "f" key for navigating links.'''
+"""Display KG entity as a tree. Press "f" key for navigating links."""
 import itertools
 import random
 from collections import defaultdict
@@ -11,69 +11,87 @@ from textual import events
 from textual.app import App
 from textual.widgets import Header, Tree, TreeNode
 
-import bluepyentity
+from bluepyentity.app import utils
 
 HINTS = "sadjklewcmpgh"
 
 
-class Explorer(App):
-    ''' Link exploration application'''
-    def __init__(self, user, env, bucket, id_):
-        token = bluepyentity.token.get_token(env=env, username=user)
-        self.forge = bluepyentity.environments.create_forge(env, token, bucket)
-        self._load_data(id_)
-        self._init_state()
-        self._previous_urls = [id_]
-        super().__init__()
+def _tree():
+    """Autovivificated tree"""
+    return defaultdict(_tree)
 
-    def _init_state(self):
+
+class Explorer(App):
+    """Link exploration application"""
+
+    def __init__(self, forge, id_):
+        """ibid"""
+        self.forge = forge
+
         # True if in "follow" command
         self._follow_cmd = False
         # Root tree element
         self._root = None
         # the bookmarked URLs
         self._urls = defaultdict(list)
-
-        def key_tree():
-            return defaultdict(key_tree)
         # nodes are letters, leaves are urls.
-        self._cur_kt = key_tree()
+        self._cur_kt = _tree()
+        # The selection of letter for the follow command
+        self._cur_selection = []
+        # The size of the hints depending on the number of links
+        self._size_combination = 0
+
+        self._previous_urls = [id_]
+
+        self._load_data(id_)
+        self._init_state()
+
+        super().__init__()
+
+    def _init_state(self):
+        self._follow_cmd = False
+        self._root = None
+        self._urls = defaultdict(list)
+        self._cur_kt = _tree()
         # The selection of letter for the follow command
         self._cur_selection = []
         # The size of the hints depending on the number of links
         self._size_combination = 0
 
     def compose(self):
+        """Yield child widgets for a container."""
         yield Header()
         yield Tree("Root")
 
     def _add_label(self, value, label):
-        ''' labels bookmarking '''
+        """labels bookmarking"""
         self._urls[value].append(label)
 
     def _load_data(self, url):
         self.data = self.forge.retrieve(url, cross_bucket=True)
 
     def _refresh_all(self, url):
-        ''' Reload data and display the tree.'''
+        """Reload data and display the tree."""
         self._load_data(url)
         self._init_state()
         self._init_tree()
 
     def on_mount(self) -> None:
-        ''' Initialization of the widget.'''
+        """Initialization of the widget."""
         self._init_state()
         self._init_tree()
 
     def _init_tree(self) -> None:
+        # pylint: disable=protected-access
         highlighter = ReprHighlighter()
 
         def add_node(name: str, node: TreeNode, data: object) -> None:
             """Adds a node to the tree.
+
             Args:
-                name (str): Name of the node.
-                node (TreeNode): Parent node.
-                data (object): Data associated with the node.
+                name(str): Name of the node.
+                node(TreeNode): Parent node.
+                data(object): Data associated with the node.
             """
             node.expand()
             if isinstance(data, dict):
@@ -84,20 +102,17 @@ class Explorer(App):
                 node.set_label(Text(f"[] {name}"))
                 for index, value in enumerate(data):
                     add_node(str(index), node.add(""), value)
-            elif type(data).__name__ == 'Resource':
+            elif type(data).__name__ == "Resource":
                 node.set_label(Text("Resource"))
                 for k, v in vars(data).items():
-                    if k.startswith('_'):
+                    if k.startswith("_"):
                         continue
                     add_node(k, node.add(""), v)
             else:
                 node._allow_expand = False
-                label = Text.assemble(
-                    Text.from_markup(f"[b]{name}[/b]="),
-                    highlighter(repr(data))
-                )
+                label = Text.assemble(Text.from_markup(f"[b]{name}[/b]="), highlighter(repr(data)))
                 node.set_label(label)
-                if isinstance(data, str) and data.startswith('http'):
+                if isinstance(data, str) and data.startswith("http"):
                     self._add_label(data, node._label)
 
         tree = self.query_one(Tree)
@@ -106,12 +121,12 @@ class Explorer(App):
         add_node("JSON", tree.root, self.data)
 
     def display_hints(self):
-        ''' Display a combination of letter to select a link.'''
+        """Display a combination of letter to select a link."""
         nb_urls = len(self._urls)
         size_combination = 1
         total_combination = len(HINTS)
         while total_combination < nb_urls and size_combination <= len(HINTS):
-            total_combination *= (len(HINTS) - size_combination)
+            total_combination *= len(HINTS) - size_combination
             size_combination += 1
         assert size_combination < total_combination
         self._size_combination = size_combination
@@ -122,29 +137,33 @@ class Explorer(App):
         needed_hints = needed_hints[:nb_urls]
 
         def add_to_keytree(tree, indices, value):
-            ''' place value in the tree under the indices'''
+            """place value in the tree under the indices"""
             if len(indices) > 1:
                 # add node
-                return add_to_keytree(tree[indices[0]], indices[1:], value)
+                add_to_keytree(tree[indices[0]], indices[1:], value)
             # add leaf
             tree[indices[0]] = value
 
         for url, hint in zip(self._urls, needed_hints):
-            hint_text = Text('[' + ''.join(hint) + ']')
+            hint_text = Text("[" + "".join(hint) + "]")
             for elem in self._urls[url]:
                 elem.append_text(hint_text)
             add_to_keytree(self._cur_kt, hint, url)
 
         # required to get all the hints displayed
+        self._invalidate_root()
+
+    def _invalidate_root(self):
+        # pylint: disable=protected-access
         self._root._invalidate()
 
     def hide_hints(self):
-        ''' Remove the hints from the node labels.'''
+        """Remove the hints from the node labels."""
         for elems in self._urls.values():
             for elem in elems:
                 # +2 because of the []
                 elem.right_crop(self._size_combination + 2)
-        self._root._invalidate()
+        self._invalidate_root()
 
     def _manage_follow_command(self, character):
         self._cur_selection.append(character)
@@ -157,6 +176,7 @@ class Explorer(App):
             else:
                 agg.append(adt)
             return agg
+
         urls = leaves(cur_kt, [])
         if not cur_kt:
             # invalid letter
@@ -166,11 +186,11 @@ class Explorer(App):
         start_idx = -self._size_combination - 1
         for url in urls:
             for elem in self._urls[url]:
-                elem.stylize(Style(color="red", bold=True),
-                             start_idx,
-                             start_idx + len(self._cur_selection))
+                elem.stylize(
+                    Style(color="red", bold=True), start_idx, start_idx + len(self._cur_selection)
+                )
 
-        self._root._invalidate()
+        self._invalidate_root()
 
         if len(urls) == 1:
             self._follow_cmd = not self._follow_cmd
@@ -180,8 +200,8 @@ class Explorer(App):
             return
 
     def on_key(self, event: events.Key) -> None:
-        ''' Manage key pressed events. '''
-        if event.character == 'f':
+        """Manage key pressed events."""
+        if event.character == "f":
             self._follow_cmd = not self._follow_cmd
             if self._follow_cmd:
                 self.display_hints()
@@ -189,11 +209,11 @@ class Explorer(App):
                 self.hide_hints()
             return
 
-        if event.character == 'b':
+        if event.character == "b":
             if len(self._previous_urls) > 1:
                 self._previous_urls.pop()
                 url = self._previous_urls[-1]
-                self._root._invalidate()
+                self._invalidate_root()
                 self._refresh_all(url)
             return
 
@@ -206,7 +226,6 @@ class Explorer(App):
 @click.argument("id_")
 @click.pass_context
 def app(ctx, id_):
-    user = ctx.meta["user"]
-    env = ctx.meta["env"]
-    bucket = ctx.meta["bucket"]
-    Explorer(user=user, env=env, bucket=bucket, id_=id_).run()
+    """Link exploration TUI"""
+    forge = utils.forge_from_ctx(ctx)
+    Explorer(forge, id_=id_).run()
