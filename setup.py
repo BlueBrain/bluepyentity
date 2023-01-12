@@ -34,7 +34,7 @@ setup(
         "nexusforge>=0.7.0,<1.0.0",
         "pyjwt",
         "rich",
-        "more-itertools",
+        "textual==0.9.1",  # API is unstable, hence the pinning.
     ],
     packages=find_packages(),
     python_requires=">=3.7",
