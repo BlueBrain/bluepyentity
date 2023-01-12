@@ -9,7 +9,7 @@ from rich.style import Style
 from rich.text import Text
 from textual import events
 from textual.app import App
-from textual.widgets import Header, Tree, TreeNode
+from textual.widgets import Footer, Header, Tree, TreeNode
 
 from bluepyentity.app import utils
 
@@ -62,6 +62,7 @@ class Explorer(App):
         """Yield child widgets for a container."""
         yield Header()
         yield Tree("Root")
+        yield Footer()
 
     def _add_label(self, value, label):
         """labels bookmarking"""
@@ -199,27 +200,42 @@ class Explorer(App):
             self._refresh_all(url)
             return
 
-    def on_key(self, event: events.Key) -> None:
-        """Manage key pressed events."""
-        if event.character == "f":
-            self._follow_cmd = not self._follow_cmd
-            if self._follow_cmd:
-                self.display_hints()
-            else:
-                self.hide_hints()
-            return
+    BINDINGS = [
+        ("f", "follow", "Open a link"),
+        ("b", "back", "Back"),
+        ("q", "quit", "Quit"),
+    ]
 
-        if event.character == "b":
-            if len(self._previous_urls) > 1:
-                self._previous_urls.pop()
-                url = self._previous_urls[-1]
-                self._invalidate_root()
-                self._refresh_all(url)
-            return
+    async def action_follow(self) -> None:
+        """Follow link"""
+        self._follow_cmd = not self._follow_cmd
 
         if self._follow_cmd:
-            self._manage_follow_command(event.character)
+            self.display_hints()
+        else:
+            self.hide_hints()
+
+    async def action_back(self) -> None:
+        """Navigate back"""
+        if self._follow_cmd:
             return
+
+        if len(self._previous_urls) > 1:
+            self._previous_urls.pop()
+            url = self._previous_urls[-1]
+            self._invalidate_root()
+            self._refresh_all(url)
+
+    async def action_quit(self) -> None:
+        """Quit the app"""
+        if self._follow_cmd:
+            return
+        self.app.exit()
+
+    def on_key(self, event: events.Key) -> None:
+        """Manage key pressed events."""
+        if self._follow_cmd:
+            self._manage_follow_command(event.character)
 
 
 @click.command()
