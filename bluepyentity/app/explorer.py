@@ -1,15 +1,18 @@
 """Display KG entity as a tree. Press "f" key for navigating links."""
+from __future__ import annotations
 import itertools
 import random
 from collections import defaultdict
 
 import click
+from rich.syntax import Syntax
 from rich.highlighter import ReprHighlighter
 from rich.style import Style
 from rich.text import Text
 from textual import events
 from textual.app import App
-from textual.widgets import Footer, Header, Tree, TreeNode
+from textual.widgets import Footer, Header, Static, Tree, TreeNode
+from textual.screen import Screen
 
 from bluepyentity.app import utils
 
@@ -19,6 +22,87 @@ HINTS = "sadjklewcmpgh"
 def _tree():
     """Autovivificated tree"""
     return defaultdict(_tree)
+
+
+from textual.containers import Grid
+from pygments.lexers import get_lexer_for_mimetype
+from textual.containers import Container, Vertical
+from bluepyentity.download import download
+
+from textual import log
+
+import atexit
+import shutil
+import tempfile
+from pathlib import Path
+
+TEMPDIRS = []
+
+def clear_tempdirs():
+    print('Would delete:')
+    for t in TEMPDIRS:
+        print(f'\t{t}')
+        #shutil.rmtree(t)
+
+atexit.register(clear_tempdirs)
+def stage_file(forge, url):
+    global TEMPDIRS
+    tempdir = tempfile.mkdtemp(prefix='bluepyentity')
+    TEMPDIRS.append(tempdir)
+    try:
+        likely_return = download(forge, resource_id=url, output_dir=tempdir)
+    except Exception as e:
+        log(e)
+        return None
+
+    log(likely_return)
+
+    # now we have to find the file
+
+    path = '/tmp/output.json'
+    log(path)
+    return path
+
+class Preview(Screen):
+    def __init__(self, forge, url, mimetype):
+        self.forge = forge
+        self.url = url
+        self.mimetype = mimetype
+        super().__init__()
+
+    def compose(self) -> ComposeResult:
+        yield Static(id="code", expand=True)
+
+    def on_mount(self, event: events.Mount) -> None:
+        code_view = self.query_one("#code", Static)
+        log(f'1: {code_view}')
+
+        path = stage_file(self.forge, self.url)
+
+        if path is None:
+            self.app.pop_screen()
+
+        try:
+            lexer = get_lexer_for_mimetype(self.mimetype)
+            with open(path, 'r') as fd:
+                syntax = Syntax(
+                    fd.read(),
+                    lexer,
+                    line_numbers=True,
+                    word_wrap=False,
+                    indent_guides=True,
+                    theme="github-dark",
+                )
+        except Exception as e:
+            log(f'2: {e}')
+            code_view.update(Traceback(theme="github-dark", width=None))
+            self.sub_title = "ERROR"
+        else:
+            log(syntax)
+            code_view.update(syntax)
+
+    def on_key(self, event: events.Key) -> None:
+        self.app.pop_screen()
 
 
 class Explorer(App):
@@ -172,7 +256,8 @@ class Explorer(App):
                 elem.right_crop(self._size_combination + 2)
         self._invalidate_root()
 
-    def _manage_follow_command(self, character):
+    def _manage_follow_command(self, key):
+        character = key.lower()
         self._cur_selection.append(character)
         cur_kt = self._cur_kt[character]
 
@@ -202,9 +287,11 @@ class Explorer(App):
         if len(urls) == 1:
             self._follow_cmd = not self._follow_cmd
             url = urls[0]
-            self._previous_urls.append(url)
-            self._refresh_all(url)
-            return
+            if key.islower():
+                self._previous_urls.append(url)
+                self._refresh_all(url)
+            else:
+                self.push_screen(Preview(self.forge, url, mimetype="application/json"))
 
     async def action_follow(self) -> None:
         """Follow link"""
@@ -230,9 +317,8 @@ class Explorer(App):
     def on_key(self, event: events.Key) -> None:
         """Manage key pressed events."""
         if self._follow_cmd:
-            self._manage_follow_command(event.character)
+            self._manage_follow_command(event.key)
             event.stop()
-
 
 @click.command()
 @click.argument("id_")
