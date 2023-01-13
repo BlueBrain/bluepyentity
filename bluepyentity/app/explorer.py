@@ -24,6 +24,12 @@ def _tree():
 class Explorer(App):
     """Link exploration application"""
 
+    BINDINGS = [
+        ("f", "follow", "Open a link"),
+        ("b", "back", "Back"),
+        ("q", "quit", "Quit"),
+    ]
+
     def __init__(self, forge, id_):
         """ibid"""
         self.forge = forge
@@ -200,12 +206,6 @@ class Explorer(App):
             self._refresh_all(url)
             return
 
-    BINDINGS = [
-        ("f", "follow", "Open a link"),
-        ("b", "back", "Back"),
-        ("q", "quit", "Quit"),
-    ]
-
     async def action_follow(self) -> None:
         """Follow link"""
         self._follow_cmd = not self._follow_cmd
@@ -217,9 +217,6 @@ class Explorer(App):
 
     async def action_back(self) -> None:
         """Navigate back"""
-        if self._follow_cmd:
-            return
-
         if len(self._previous_urls) > 1:
             self._previous_urls.pop()
             url = self._previous_urls[-1]
@@ -228,14 +225,13 @@ class Explorer(App):
 
     async def action_quit(self) -> None:
         """Quit the app"""
-        if self._follow_cmd:
-            return
         self.app.exit()
 
     def on_key(self, event: events.Key) -> None:
         """Manage key pressed events."""
         if self._follow_cmd:
             self._manage_follow_command(event.character)
+            event.stop()
 
 
 @click.command()
