@@ -9,7 +9,8 @@ from rich.style import Style
 from rich.text import Text
 from textual import events
 from textual.app import App
-from textual.widgets import Footer, Header, Tree, TreeNode
+from textual.screen import Screen
+from textual.widgets import Footer, Label, Tree, TreeNode
 
 from bluepyentity.app import utils
 
@@ -21,18 +22,31 @@ def _tree():
     return defaultdict(_tree)
 
 
-class Explorer(App):
-    """Link exploration application"""
+class NexusHeader(Label):
+    """Currently updating the title is broken in textual; simple replacement"""
+
+    DEFAULT_CSS = """
+    NexusHeader {
+        background: $accent;
+        content-align: center middle;
+        color: $text;
+        dock: top;
+        height: 1;
+    }"""
+
+
+class Nexus(Screen):
+    """Wrap displaying a nexus resource"""
 
     BINDINGS = [
         ("f", "follow", "Open a link"),
         ("b", "back", "Back"),
-        ("q", "quit", "Quit"),
     ]
 
     def __init__(self, forge, id_):
         """ibid"""
         self.forge = forge
+        self.id_ = id_
 
         # True if in "follow" command
         self._follow_cmd = False
@@ -46,8 +60,6 @@ class Explorer(App):
         self._cur_selection = []
         # The size of the hints depending on the number of links
         self._size_combination = 0
-
-        self._previous_urls = [id_]
 
         self._load_data(id_)
         self._init_state()
@@ -66,8 +78,8 @@ class Explorer(App):
 
     def compose(self):
         """Yield child widgets for a container."""
-        yield Header()
-        yield Tree("Root")
+        yield NexusHeader(self.id_)
+        yield Tree("tree")
         yield Footer()
 
     def _add_label(self, value, label):
@@ -76,12 +88,6 @@ class Explorer(App):
 
     def _load_data(self, url):
         self.data = self.forge.retrieve(url, cross_bucket=True)
-
-    def _refresh_all(self, url):
-        """Reload data and display the tree."""
-        self._load_data(url)
-        self._init_state()
-        self._init_tree()
 
     def on_mount(self) -> None:
         """Initialization of the widget."""
@@ -202,9 +208,8 @@ class Explorer(App):
         if len(urls) == 1:
             self._follow_cmd = not self._follow_cmd
             url = urls[0]
-            self._previous_urls.append(url)
-            self._refresh_all(url)
-            return
+            self.hide_hints()
+            self.app.push_screen(Nexus(self.forge, url))
 
     async def action_follow(self) -> None:
         """Follow link"""
@@ -217,27 +222,50 @@ class Explorer(App):
 
     async def action_back(self) -> None:
         """Navigate back"""
-        if len(self._previous_urls) > 1:
-            self._previous_urls.pop()
-            url = self._previous_urls[-1]
-            self._invalidate_root()
-            self._refresh_all(url)
+        if len(self.app.screen_stack) > 2:
+            self.app.pop_screen()
+
+    def on_key(self, event: events.Key) -> None:
+        """Manage key pressed events."""
+        if self._follow_cmd:
+            if event.name == "escape":
+                self._follow_cmd = False
+                self.hide_hints()
+            else:
+                self._manage_follow_command(event.character)
+                event.stop()
+
+
+class Explorer(App):
+    """Link exploration application"""
+
+    BINDINGS = [
+        ("q", "quit", "Quit"),
+    ]
+
+    def __init__(self, forge, id_):
+        """ibid"""
+        self.forge = forge
+        self.id_ = id_
+        super().__init__()
+
+    def compose(self):
+        """Yield child widgets for a container."""
+        yield Footer()
+
+    def on_mount(self) -> None:
+        """Initialization of the widget."""
+        self.push_screen(Nexus(self.forge, self.id_))
 
     async def action_quit(self) -> None:
         """Quit the app"""
         self.app.exit()
 
-    def on_key(self, event: events.Key) -> None:
-        """Manage key pressed events."""
-        if self._follow_cmd:
-            self._manage_follow_command(event.character)
-            event.stop()
-
 
 @click.command()
 @click.argument("id_")
 @click.pass_context
-def app(ctx, id_):
+def explorer_app(ctx, id_):
     """Link exploration TUI"""
     forge = utils.forge_from_ctx(ctx)
     Explorer(forge, id_=id_).run()
