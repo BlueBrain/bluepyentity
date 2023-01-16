@@ -6,7 +6,6 @@ import click
 from rich import console, pretty
 
 import bluepyentity
-from bluepyentity import utils
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 
@@ -34,7 +33,7 @@ def entity(ctx, resource, dry_run):
         debug=True,
     )
 
-    resource = utils.parse_dict_from_file(resource)
+    resource = bluepyentity.utils.parse_dict_from_file(resource)
     resources = (resource,) if isinstance(resource, dict) else resource
 
     registrations = [
@@ -59,5 +58,5 @@ def entity(ctx, resource, dry_run):
 def types(_):
     """List known entitye types"""
     cons = console.Console()
-    entities = utils.get_entity_definitions()
+    entities = bluepyentity.register.get_entity_definitions()
     pretty.pprint(entities, console=cons)

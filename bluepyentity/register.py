@@ -5,6 +5,7 @@ import sys
 from functools import cached_property
 
 import kgforge
+import pkg_resources
 
 from bluepyentity import utils
 
@@ -15,6 +16,56 @@ RE_URL = re.compile("^http(s)?://")
 RE_NOT_FILE_URI = re.compile(f"^(?!{FILE_URI})")
 MODULE = sys.modules[__name__]
 
+DEFAULT_PARAMS_PATH = pkg_resources.resource_filename(__name__, "default_params.yaml")
+ENTITIES_PATH = pkg_resources.resource_filename(__name__, "entity_definitions.yaml")
+
+
+def get_default_params(type_):
+    """Get default parameters for given type.
+
+    Args:
+        type_ (str): type of resource
+
+    Returns:
+        dict: default parameters as dict
+    """
+    return utils.parse_dict_from_file(DEFAULT_PARAMS_PATH).get(type_, {})
+
+
+def get_entity_definitions():
+    """Get all known entities"""
+    entities = utils.parse_dict_from_file(ENTITIES_PATH)
+    skipped_entities = [
+        "_Entity",
+        "EntityMixin",
+    ]
+    for se in skipped_entities:
+        if se in entities:
+            del entities[se]
+    return entities
+
+
+def get_entity_definition(type_):
+    """Get entity definition from the parsed definition file."""
+    entities = utils.parse_dict_from_file(ENTITIES_PATH)
+
+    def get_entity(name):
+        ent_dict = entities[name].copy()
+        ids = set(ent_dict.pop("_id_fields", []))
+
+        for ent in ent_dict.pop("_inherits", []):
+            inherited_ent, inherited_ids = get_entity(ent)
+            ids.update(inherited_ids)
+            ent_dict = dict(ent_dict, **inherited_ent)
+
+        return ent_dict, ids
+
+    if type_ in entities:
+        schema, ids = get_entity(type_)
+        return {"schema": schema, "ids": ids}
+
+    return None
+
 
 def _is_url(item):
     return isinstance(item, str) and RE_URL.match(item)
@@ -22,7 +73,7 @@ def _is_url(item):
 
 def _is_supported_type(type_):
     # This is a bit dangerous as the type can be _Entity which would evaluate as True here
-    return utils.get_entity_definition(type_) is not None
+    return get_entity_definition(type_) is not None
 
 
 def _wrap_linked_file_path(path):
@@ -37,63 +88,18 @@ def _wrap_id(id_, type_):
 
 def _wrap_id_fetch(id_, forge):
     """Find items with given IDs in Nexus and wrap them as objects."""
-    try:
-        return _wrap_id(id_, forge.retrieve(id_, cross_bucket=True).type)
-    except kgforge.core.commons.exceptions.RetrievalError as e:
-        raise RuntimeError(e) from e
+    if _is_url(id_):
+        try:
+            return _wrap_id(id_, forge.retrieve(id_, cross_bucket=True).type)
+        except kgforge.core.commons.exceptions.RetrievalError as e:
+            raise RuntimeError(e) from e
+    elif isinstance(id_, list):
+        return [_wrap_id_fetch(i, forge) for i in id_]
 
-
-def _process_id_field(id_field, forge):
-    if isinstance(id_field, list):
-        return [_process_id_field(id_, forge) for id_ in id_field]
-    if isinstance(id_field, str):
-        _wrap_id_fetch(id_field, forge)
-    if isinstance(id_field, dict):
-        # For now expect full definition
-        # - need to see how to make this work with the class Resource below
-        # - e.g., how to handle if type is a list [AtlasRelease, BrainAtlasRelease]
-        return kgforge.core.Resource.from_json(id_field)
-
-    raise TypeError("Incompatible type: {type(id_field)}")
-
-
-def _forge_register(forge, resource):
-    try:
-        schema_id = forge._model.schema_id(type)  # pylint: disable=protected-access
-    except ValueError:
-        schema_id = None
-
-    try:
-        forge.register(resource, schema_id=schema_id)
-    except Exception as err:
-        raise RuntimeError(err) from err
-
-
-def _register_resource(resource):
-    res = resource.resource
-    for key in resource.possible_ids:
-        subres = getattr(res, key, None)
-        if subres is not None:
-            subres = register_subfield_if_needed(resource._forge, subres)
-            setattr(res, key, subres)
-
-    _forge_register(resource._forge, res)
-
-
-def register_subfield_if_needed(forge, value):
-    # NOTE: register a field if it's an "id_field" but does not have an id
-    if isinstance(value, list):
-        return [register_subfield_if_needed(forge, v) for v in value]
-    if isinstance(value, kgforge.core.Resource) and not hasattr(value, "id"):
-        _forge_register(forge, value)
-        value = _wrap_id(value.id, value.type)
-
-    return value
+    return id_
 
 
 # NOTE: Should this work with bluepyentity.nexus.entityEntity?
-
-
 class Resource:
     """Base class for resources to register."""
 
@@ -150,7 +156,7 @@ class Resource:
 
     @cached_property
     def _schema_definition(self):
-        return utils.get_entity_definition(self.type)
+        return get_entity_definition(self.type)
 
     def register(self):
         """Register the resource in Nexus."""
@@ -210,6 +216,7 @@ class Resource:
     def _get_distribution(self):
         """Create a distribution of files to be uploaded."""
         if distribution := self._definition.get("distribution"):
+            assert isinstance(distribution, list)
             ret = []
             for path in distribution:
                 if isinstance(path, dict):
@@ -229,7 +236,7 @@ class Resource:
 
     def _with_defaults(self, definition):
         """Add default values to definiton."""
-        defaults = utils.get_default_params(self.type)
+        defaults = get_default_params(self.type)
         return dict(defaults, **definition)
 
     def _wrap_fields_with_ids(self, definition):
@@ -237,8 +244,8 @@ class Resource:
         patch = {}
         for field in self.possible_ids:
             value = definition.get(field)
-            if value is not None:
-                patch[field] = _process_id_field(value, self._forge)
+            if isinstance(value, (str, list)):
+                patch[field] = _wrap_id_fetch(value, self._forge)
 
         return dict(definition, **patch)
 
@@ -359,12 +366,20 @@ class SimulationCampaignConfiguration(Resource):
         return dict(definition, **patch)
 
 
-def parse_resource(forge, definition):
-    # NOTE: idea here was to reuse this for register the resources inside the resources
-    res_type = definition.get("type", None)
-    # TODO: what to do here (happens if the resource has multiple types)?
-    if not isinstance(res_type, str):
-        __import__("pdb").set_trace()
+def register(forge, definition, dry_run=False):
+    """Register a Resource in Nexus.
+
+    The parameters of the resource are given in a file.
+
+    Args:
+        forge (kgforge.core.KnowledgeGraphForge): nexus-forge instance.
+        definition(dict): Definition of the resource
+        dry_run (bool): Do not register but print the parsed resource.
+    """
+    if "type" not in definition:
+        raise NotImplementedError("Missing type")
+
+    res_type = definition.get("type")
 
     if cls := getattr(MODULE, res_type, None):
         resource = cls(definition, forge)
@@ -373,23 +388,8 @@ def parse_resource(forge, definition):
     else:
         raise NotImplementedError(f"Unsupported type: '{res_type}'")
 
-    return resource
-
-
-def register(forge, resource_definition, dry_run=False):
-    """Register a Resource in Nexus.
-
-    The parameters of the resource are given in a file.
-
-    Args:
-        forge (kgforge.core.KnowledgeGraphForge): nexus-forge instance.
-        resource_definition(dict): Definition of the resource
-        dry_run (bool): Do not register but parse the resource
-    """
-    resource = parse_resource(forge, resource_definition)
-
     if not dry_run:
-        _register_resource(resource)
-        L.info("'%s' successfully registered with id: '%s'", resource.type, resource.resource.id)
+        resource.register()
+        L.info("'%s' successfully registered with id: '%s'", res_type, resource.resource.id)
 
     return resource
