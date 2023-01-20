@@ -110,6 +110,8 @@ def create_nexus_client(environment, token):
     import nexussdk
 
     try:
+        # nexussdk.config was deleted when they moved to having NexusClient,
+        # so it's used as canary
         import nexussdk.config
     except ModuleNotFoundError:
         # pylint: disable=no-member
@@ -117,6 +119,8 @@ def create_nexus_client(environment, token):
     else:
         nexussdk.config.set_environment(endpoint)
         nexussdk.config.set_token(token)
+
+        from urllib.parse import quote_plus as encode_url
 
         from nexussdk import acls as _acls
         from nexussdk import files as _files
@@ -131,6 +135,39 @@ def create_nexus_client(environment, token):
         from nexussdk import storages as _storages
         from nexussdk import utils as _utils
         from nexussdk import views as _views
+
+        def fetch_resource(
+            org_label: str,
+            project_label: str,
+            id_: str,
+            resolver_id: str = "_",
+            tag: str = None,
+            rev: int = None,
+        ) -> "Dict":
+            """Fetch a resource using resolver.
+
+            Args:
+               org_label: Label of the organization the resolver belongs to.
+               project_label: Label of the project the resolver belongs to.
+               id_: ID of the resolver, given as an IRI which is not URL encoded.
+               resolver_id: the resolver ID to use, defaults to '_' which is the 1st resolver
+               tag: (optional) Tag of the resolver.
+               rev: (optional) Revision number of the resolver.
+
+            Raise an ``Exception`` if ``rev`` and ``tag`` are used together.
+            """
+            # pylint: disable=protected-access
+            _resolvers._check(rev, tag)
+            encoded_resolver_id = encode_url(resolver_id)
+            encoded_id = encode_url(id_)
+
+            return nexussdk.utils.http.http_get(
+                [_resolvers.SEGMENT, org_label, project_label, encoded_resolver_id, encoded_id],
+                rev=rev,
+                tag=tag,
+            )
+
+        _resolvers.fetch_resource = fetch_resource
 
         class Client:
             """nexus_sdk Client mock"""
