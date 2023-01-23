@@ -99,13 +99,18 @@ def create_forge(environment, token, bucket, store_overrides=None, debug=False):
         return forge
 
 
+def get_environment_config(environment):
+    """get the config for the `environment`"""
+    with get_environment(environment) as env:
+        with open(env, encoding="utf-8") as fd:
+            return yaml.safe_load(fd)
+
+
 def create_nexus_client(environment, token):
     """create a nexus_python_sdk.client object"""
     # pylint: disable=import-outside-toplevel,too-many-locals
-    with get_environment(environment) as env:
-        with open(env, encoding="utf-8") as fd:
-            config = yaml.safe_load(fd)
-        endpoint = config["Store"]["endpoint"]
+    config = get_environment_config(environment)
+    endpoint = config["Store"]["endpoint"]
 
     import nexussdk
 
