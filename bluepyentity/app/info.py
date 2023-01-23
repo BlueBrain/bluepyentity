@@ -19,12 +19,17 @@ def _extra_print(cons, store_metadata):
     contents = [
         Rule(),
     ]
+
+    if "_project" in store_metadata:
+        project = store_metadata["_project"].split("/")
+        project = "/".join((*project[:-2], f"[green]{project[-2]}/{project[-1]}[/]"))
+        contents.append(f"[green]Project[/]: {project}")
+
     createdAt = dateutil.parser.parse(store_metadata["_createdAt"]).replace(microsecond=0)
     updatedAt = dateutil.parser.parse(store_metadata["_updatedAt"]).replace(microsecond=0)
     contents.extend(
         [
             f"[green]Full ID[/]: {store_metadata['id']}?rev={store_metadata['_rev']}",
-            f"[green]Project[/]: {store_metadata['_project']}",
             f"[green]Created / Updated by[/]: {store_metadata['_createdBy']} / {store_metadata['_updatedBy']}",
             f"[green]Created / Updated at[/]: {createdAt} / {updatedAt} -> diff {updatedAt - createdAt}",
         ]
