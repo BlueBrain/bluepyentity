@@ -71,6 +71,7 @@ class Nexus(Screen):
         self._root = None
         self._urls = defaultdict(list)
         self._cur_kt = _tree()
+        self._initial_tree = self._cur_kt
         # The selection of letter for the follow command
         self._cur_selection = []
         # The size of the hints depending on the number of links
@@ -154,8 +155,9 @@ class Nexus(Screen):
             if len(indices) > 1:
                 # add node
                 add_to_keytree(tree[indices[0]], indices[1:], value)
-            # add leaf
-            tree[indices[0]] = value
+            else:
+                # add leaf
+                tree[indices[0]] = value
 
         for url, hint in zip(self._urls, needed_hints):
             hint_text = Text("[" + "".join(hint) + "]")
@@ -176,6 +178,8 @@ class Nexus(Screen):
             for elem in elems:
                 # +2 because of the []
                 elem.right_crop(self._size_combination + 2)
+        self._cur_kt = self._initial_tree
+        self._cur_selection = []
         self._invalidate_root()
 
     def _manage_follow_command(self, character):
