@@ -41,6 +41,8 @@ class Nexus(Screen):
     BINDINGS = [
         ("f", "follow", "Open a link"),
         ("b", "back", "Back"),
+        ("ctrl+t", "app.toggle_dark", "Toggle Dark mode"),
+        ("q", "quit", "Quit"),
     ]
 
     def __init__(self, forge, id_):
@@ -93,6 +95,9 @@ class Nexus(Screen):
         """Initialization of the widget."""
         self._init_state()
         self._init_tree()
+
+        tree = self.query_one(Tree)
+        tree.focus()
 
     def _init_tree(self) -> None:
         # pylint: disable=protected-access
