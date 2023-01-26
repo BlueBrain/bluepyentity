@@ -9,6 +9,7 @@ from rich.style import Style
 from rich.text import Text
 from textual import events
 from textual.app import App
+from textual.binding import Binding
 from textual.screen import Screen
 from textual.widgets import Footer, Label, Tree, TreeNode
 
@@ -20,6 +21,21 @@ HINTS = "sadjklewcmpgh"
 def _tree():
     """Autovivificated tree"""
     return defaultdict(_tree)
+
+
+class VimTree(Tree):
+    """Add j/k bindings for tree navigation"""
+
+    BINDINGS = [
+        Binding("enter", "select_cursor", "Select", show=False),
+        Binding("up", "cursor_up", "Cursor Up", show=False),
+        Binding("down", "cursor_down", "Cursor Down", show=False),
+        Binding("k", "cursor_up", "Cursor Up", show=False),
+        Binding("j", "cursor_down", "Cursor Down", show=False),
+        Binding("h", "select_cursor", "Cursor Up", show=False),
+        Binding("l", "select_cursor", "Cursor Down", show=False),
+        Binding("G", "scroll_end", "Goto end", show=False),
+    ]
 
 
 class NexusHeader(Label):
@@ -63,7 +79,8 @@ class Nexus(Screen):
         # The size of the hints depending on the number of links
         self._size_combination = 0
 
-        self._load_data(id_)
+        self.data = self.forge.retrieve(id_, cross_bucket=True)
+
         self._init_state()
 
         super().__init__()
@@ -73,27 +90,21 @@ class Nexus(Screen):
         self._root = None
         self._urls = defaultdict(list)
         self._cur_kt = _tree()
-        # The selection of letter for the follow command
         self._cur_selection = []
-        # The size of the hints depending on the number of links
         self._size_combination = 0
 
     def compose(self):
         """Yield child widgets for a container."""
         yield NexusHeader(self.id_)
-        yield Tree("tree")
+        yield VimTree(label="resource", id="nexus-tree")
         yield Footer()
 
     def _add_label(self, value, label):
         """labels bookmarking"""
         self._urls[value].append(label)
 
-    def _load_data(self, url):
-        self.data = self.forge.retrieve(url, cross_bucket=True)
-
     def on_mount(self) -> None:
         """Initialization of the widget."""
-        self._init_state()
         self._init_tree()
 
         tree = self.query_one(Tree)
@@ -102,6 +113,13 @@ class Nexus(Screen):
     def _init_tree(self) -> None:
         # pylint: disable=protected-access
         highlighter = ReprHighlighter()
+
+        preferred_order = [
+            "id",
+            "name",
+            "description",
+            "type",
+        ]
 
         def add_node(name: str, node: TreeNode, data: object) -> None:
             """Adds a node to the tree.
@@ -113,30 +131,39 @@ class Nexus(Screen):
             """
             node.expand()
             if isinstance(data, dict):
-                node.set_label(Text(f"{{}} {name}"))
+                node.set_label(f"{{}} {name}")
                 for key, value in data.items():
                     add_node(key, node.add(""), value)
             elif isinstance(data, list):
-                node.set_label(Text(f"[] {name}"))
-                for index, value in enumerate(data):
-                    add_node(str(index), node.add(""), value)
+                node.set_label(f"[] {name}")
+                for i, value in enumerate(data):
+                    add_node(str(i), node.add(""), value)
             elif type(data).__name__ == "Resource":
-                node.set_label(Text("Resource"))
-                for k, v in vars(data).items():
-                    if k.startswith("_"):
+                label = "Resource:"
+                if hasattr(data, "_store_metadata") and data._store_metadata is not None:
+                    label = f"Resource: \\[{data._store_metadata.id} / {data._store_metadata._rev}]"
+                node.set_label(label)
+                data = vars(data)
+                for p in preferred_order:
+                    if p in data:
+                        add_node(p, node.add(""), data[p])
+
+                for k, v in data.items():
+                    if k.startswith("_") or k in preferred_order:
                         continue
                     add_node(k, node.add(""), v)
             else:
                 node._allow_expand = False
-                label = Text.assemble(Text.from_markup(f"[b]{name}[/b]="), highlighter(repr(data)))
-                node.set_label(label)
+                node.set_label(
+                    Text.assemble(Text.from_markup(f"[b]{name}[/b]="), highlighter(repr(data)))
+                )
                 if isinstance(data, str) and data.startswith("http"):
                     self._add_label(data, node._label)
 
-        tree = self.query_one(Tree)
-        self._root = tree
-        tree.clear()
-        add_node("JSON", tree.root, self.data)
+        self._root = self.query_one(VimTree)
+        self._root.clear()
+        self._root.focus()
+        add_node("", self._root.root, self.data)
 
     def display_hints(self):
         """Display a combination of letter to select a link."""
