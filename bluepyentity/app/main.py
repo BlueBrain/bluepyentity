@@ -19,7 +19,7 @@ USER = getpass.getuser()
         "info": info.app,
         "token": token.app,
         "project": project.app,
-        "explorer": explorer.app,
+        "explorer": explorer.explorer_app,
     }
 )
 @click.version_option(version=VERSION)
