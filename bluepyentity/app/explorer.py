@@ -34,7 +34,7 @@ class VimTree(Tree):
         Binding("j", "cursor_down", "Cursor Down", show=False),
         Binding("h", "select_cursor", "Cursor Up", show=False),
         Binding("l", "select_cursor", "Cursor Down", show=False),
-        Binding("G", "action_scroll_end", "Goto end", show=False),
+        Binding("G", "scroll_end", "Goto end", show=False),
     ]
 
 
