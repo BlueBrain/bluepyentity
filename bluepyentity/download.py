@@ -42,7 +42,6 @@ def download(
 def _download_distributions(
     forge, resource, output_dir, create_links_if_possible
 ) -> Dict[str, Path]:
-
     paths: Dict[str, Path] = {}
 
     valid_distributions = (
@@ -115,7 +114,6 @@ def _get_filesystem_location(distribution):
 
 
 def _download_distribution_file(forge, distribution, target_path, create_links_if_possible):
-
     filesystem_location = _get_filesystem_location(distribution)
 
     if filesystem_location:
