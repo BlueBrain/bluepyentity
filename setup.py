@@ -37,6 +37,7 @@ setup(
         "textual==0.9.1",  # API is unstable, hence the pinning.
     ],
     packages=find_packages(),
+    include_package_data=True,
     python_requires=">=3.7",
     extras_require={
         "docs": ["sphinx", "sphinx-bluebrain-theme"],
