@@ -10,19 +10,19 @@ from bluepyentity.nexus.entity import Entity
 from bluepyentity.nexus.factory import EntityFactory
 
 
-@patch(test_module.__name__ + ".KnowledgeGraphForge")
+@patch(test_module.__name__ + ".create_forge")
 def test_nexushelper_init(mocked_forge):
     helper = test_module.NexusHelper(bucket="fake/project", token="fake_token")
     assert isinstance(helper, test_module.NexusHelper)
 
 
-@patch(test_module.__name__ + ".KnowledgeGraphForge")
+@patch(test_module.__name__ + ".create_forge")
 def test__factory(mocked_forge):
     helper = test_module.NexusHelper(bucket="fake/project", token="fake_token")
     assert isinstance(helper.factory, EntityFactory)
 
 
-@patch(test_module.__name__ + ".KnowledgeGraphForge")
+@patch(test_module.__name__ + ".create_forge")
 def test_nexushelper_get_entity_by_id(mocked_forge):
     mocked_forge.return_value.retrieve.return_value = Resource(id="id1", type="DetailedCircuit")
     helper = test_module.NexusHelper(bucket="fake/project", token="fake_token")
@@ -34,7 +34,7 @@ def test_nexushelper_get_entity_by_id(mocked_forge):
     assert result.type == "DetailedCircuit"
 
 
-@patch(test_module.__name__ + ".KnowledgeGraphForge")
+@patch(test_module.__name__ + ".create_forge")
 def test_nexushelper_get_entities_by_query(mocked_forge):
     mocked_forge.return_value.sparql.return_value = [Resource(id="id1")]
     mocked_forge.return_value.retrieve.return_value = Resource(id="id1", type="DetailedCircuit")
@@ -49,7 +49,7 @@ def test_nexushelper_get_entities_by_query(mocked_forge):
     assert result[0].type == "DetailedCircuit"
 
 
-@patch(test_module.__name__ + ".KnowledgeGraphForge")
+@patch(test_module.__name__ + ".create_forge")
 def test_nexushelper_get_entities(mocked_forge):
     mocked_forge.return_value.search.return_value = [Resource(id="id1")]
     mocked_forge.return_value.retrieve.return_value = Resource(id="id1", type="DetailedCircuit")
@@ -64,7 +64,7 @@ def test_nexushelper_get_entities(mocked_forge):
     assert result[0].type == "DetailedCircuit"
 
 
-@patch(test_module.__name__ + ".KnowledgeGraphForge")
+@patch(test_module.__name__ + ".create_forge")
 def test_nexushelper_as_dataframe(mocked_forge):
     # KnowledgeGraphForge.as_dataframe is patched so we can only mock the result
     df = pd.DataFrame(
@@ -88,7 +88,7 @@ def test_nexushelper_as_dataframe(mocked_forge):
     mocked_forge.return_value.as_dataframe.assert_called_once_with(resources, store_metadata=True)
 
 
-@patch(test_module.__name__ + ".KnowledgeGraphForge")
+@patch(test_module.__name__ + ".create_forge")
 def test_nexushelper_to_dict(mocked_forge):
     # KnowledgeGraphForge.as_json is patched so we can only mock the result
     resource_dict = {
@@ -107,7 +107,7 @@ def test_nexushelper_to_dict(mocked_forge):
     mocked_forge.return_value.as_json.assert_called_once_with(resource, store_metadata=True)
 
 
-@patch(test_module.__name__ + ".KnowledgeGraphForge")
+@patch(test_module.__name__ + ".create_forge")
 def test_nexushelper_reopen(mocked_forge):
     helper = test_module.NexusHelper(bucket="fake/project", token="fake_token")
     resource = Resource(id="id1", type="DetailedCircuit", name="fake_name")

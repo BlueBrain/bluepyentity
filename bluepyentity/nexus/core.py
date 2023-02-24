@@ -18,38 +18,28 @@
 """Nexus-forge API integration."""
 import logging
 
-from kgforge.core import KnowledgeGraphForge
-
+from bluepyentity.environments import create_forge
 from bluepyentity.nexus.connector import NexusConnector
 from bluepyentity.nexus.factory import EntityFactory
+from bluepyentity.token import get_token
 
 L = logging.getLogger(__name__)
-NEXUS_CONFIG_DEFAULT = (
-    "https://raw.githubusercontent.com/BlueBrain/nexus-forge/"
-    "master/examples/notebooks/use-cases/prod-forge-nexus.yml"
-)
 
 
 class NexusHelper:
     """The "main" class for the nexus-forge integration."""
 
-    def __init__(self, bucket, token, nexus_config=None, debug=False, **kwargs):
+    def __init__(self, bucket, token=None, nexus_environment="prod", debug=False):
         """Instantiate a new NexusHelper class.
 
         Args:
             bucket (str): Name of the bucket to use (as: ``"ORGANIZATON/PROJECT"``).
             token (str): A base64 encoded Nexus access token.
-            nexus_config (str): Path to the nexus config to use.
+            nexus_environment (str): Which nexus environment to use ("prod", "staging").
             debug (bool): A flag that enables more verbose output.
-            kwargs (dict): See KnowledgeGraphForge.
         """
-        self._forge = KnowledgeGraphForge(
-            nexus_config or NEXUS_CONFIG_DEFAULT,
-            bucket=bucket,
-            token=token,
-            debug=debug,
-            **kwargs,
-        )
+        token = token or get_token(nexus_environment)
+        self._forge = create_forge(nexus_environment, token, bucket, debug=debug)
         self._connector = NexusConnector(forge=self._forge, debug=debug)
         self._factory = EntityFactory(helper=self, connector=self._connector)
 
