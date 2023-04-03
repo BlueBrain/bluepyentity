@@ -1,0 +1,100 @@
+
+
+.search-bar-container {
+  layout: horizontal;
+  width: 100%;
+  height: auto;
+}
+
+#search-bar:focus-within {
+  background: $background-lighten-1;
+}
+.search-container {
+  width:0.5fr;
+  height: auto;
+}
+SearchBar {
+  padding: 0;
+  border: none;
+  height: 1;
+  width: 100%;
+  background: chocolate;
+}
+SearchBar:focus {
+  background: red;
+}
+.search-input {
+  padding-left: 1;
+  color: blue;
+  background: burlywood;
+}
+
+.search-prompt {
+  width: 3;
+  padding: 0 1;
+  background: salmon;
+  width: 12; 
+  color: $text;
+}
+#h1 {
+  height: auto;
+}
+
+
+.search-completion > .search-completion--selected-item {
+  color: $text;
+  background: $background-lighten-2;
+  text-style: bold;
+}
+
+.search-completion {
+  /*padding-right: 1;*/
+  height: auto;
+  /*border-left: wide $success-darken-2;*/
+  width: 100%;
+  background: rgb(255, 47, 168);
+}
+
+.search-completion-container {
+  width: 0.9fr;
+  margin-top: 1;
+  overflow: hidden auto;
+  height: auto;
+  max-height: 5;
+  layer: overlay;
+  scrollbar-size-vertical: 1;
+  scrollbar-color: $success;
+}
+
+.search-completion-context {
+  height: auto;
+  color: $text;
+  background: $background-darken-1;
+}
+
+#object-panel {
+  height: auto;
+  padding-right: 1;
+  color:cadetblue;
+}
+
+#body-container {
+  padding: 1 0 1 1;
+  /*scrollbar-gutter: stable;*/
+
+}
+.table {
+  background: blueviolet;
+  scrollbar-color: pink;
+  width:100%;
+}
+Screen{
+  overflow-x: auto;
+  scrollbar-color: red;
+  layers: overlay;
+}
+
+.column-choice{
+  layer: overlay;
+  height:20;
+}

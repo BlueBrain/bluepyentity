@@ -34,7 +34,7 @@ setup(
         "nexusforge>=0.7.0,<1.0.0",
         "pyjwt",
         "rich",
-        "textual==0.9.1",  # API is unstable, hence the pinning.
+        "textual @ git+https://github.com/Textualize/textual/@a75b7cd08870690e8b9abc88bc75c822cfe253d1#egg=textual",  # API is unstable, hence the pinning.
     ],
     packages=find_packages(),
     include_package_data=True,

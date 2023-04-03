@@ -11,7 +11,8 @@ from textual import events
 from textual.app import App
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Footer, Label, Tree, TreeNode
+from textual.widgets import Footer, Label, Tree
+from textual.widgets.tree import TreeNode
 
 from bluepyentity.app import utils
 

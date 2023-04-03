@@ -7,7 +7,7 @@ import logging
 
 import click
 
-from bluepyentity.app import download, explorer, info, project, token
+from bluepyentity.app import download, explorer, info, project, token, search_app
 from bluepyentity.version import VERSION
 
 USER = getpass.getuser()
@@ -20,6 +20,7 @@ USER = getpass.getuser()
         "token": token.app,
         "project": project.app,
         "explorer": explorer.explorer_app,
+        "search": search_app.app,
     }
 )
 @click.version_option(version=VERSION)
