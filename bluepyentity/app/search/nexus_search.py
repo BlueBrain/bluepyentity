@@ -3,15 +3,13 @@ from enum import Enum
 from textual import events, log
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical, VerticalScroll
-from textual.widgets import Checkbox, DataTable, Static
+from textual.widgets import Checkbox, DataTable, Footer, Static
 import bluepyentity.app.search.kg as kg
 from bluepyentity.app.search.search_bar import SearchBar
-from bluepyentity.app.search.search_completion import (CompletionCandidate,
-                                                       SearchCompletion)
+from bluepyentity.app.search.search_completion import CompletionCandidate, SearchCompletion
 import bluepyentity
 from bluepyentity.app.explorer import Nexus
 
-# test non string properties
 # remove kgforge in explore
 # footer
 # manage back from explorer
@@ -28,7 +26,7 @@ DEFAULT_SHORT_LIST = ["entityid", "createdAt", "project", "name", "type", "self"
 
 
 def build_completion_candidates(property_definitions):
-    '''create a list of completion candidate out of property definitions'''
+    """create a list of completion candidate out of property definitions"""
     return [
         CompletionCandidate(
             name=pd.value.split("/")[-1],
@@ -42,7 +40,12 @@ def build_completion_candidates(property_definitions):
 
 
 class NexusSearch(App):
-    '''search and explore the knowledge graph in a TUI'''
+    """search and explore the knowledge graph in a TUI"""
+
+    BINDINGS = [
+        ("q", "quit", "Quit"),
+    ]
+
     class State(Enum):
         STAND_BY = (0,)
         INPUT = (1,)
@@ -54,7 +57,7 @@ class NexusSearch(App):
         css_path=None,
         watch_css: bool = False,
         token: str | None = None,
-        bucket: str | None = None
+        bucket: str | None = None,
     ):
         super().__init__(driver_class, css_path, watch_css)
         self.token = token
@@ -63,9 +66,7 @@ class NexusSearch(App):
         self._current_focus = None
         self.table = None
         self.completion_items = {}
-        type_counts = kg.load_types(self.org,
-                                    self.project,
-                                    self.token)
+        type_counts = kg.load_types(self.org, self.project, self.token)
         types = [
             CompletionCandidate(
                 name=t["key"].split("/")[-1],
@@ -124,9 +125,14 @@ class NexusSearch(App):
         yield Horizontal(*l_input_types, id="h1", classes="search-bar-container")
         self.table = DataTable(zebra_stripes=True)
         yield self.table
+        yield Footer()
+
+    async def action_quit(self) -> None:
+        """Quit the app"""
+        self.app.exit()
 
     def set_active_state(self, state):
-        '''set the current active state'''
+        """set the current active state"""
         log.info(f"state[{self._active_state}]->state[{state}]")
         self._active_state = state
 
@@ -161,7 +167,8 @@ class NexusSearch(App):
         self.refresh_all()
 
     def refresh_all(self):
-        '''refresh all components'''
+        """refresh all components"""
+
         def refresh_children(component):
             for c in component.children:
                 refresh_children(c)
@@ -171,9 +178,9 @@ class NexusSearch(App):
                 pass
 
         refresh_children(self)
-    
+
     def run_query(self):
-        '''perform the query based on the search bar inputs'''
+        """perform the query based on the search bar inputs"""
         search_input = self.query_one("#search-input-type")
         type_ = None
         if search_input.selected_candidate:
@@ -198,22 +205,18 @@ class NexusSearch(App):
             order_property = order_input.selected_candidate.property_definition
         qd = kg.QueryDefinition(
             type=type_,
-            property_predicate=kg.PropertyPredicate(
-                property_definition, value, "CONTAINS"
-            ),
+            property_predicate=kg.PropertyPredicate(property_definition, value, "CONTAINS"),
             order_by=order_property,
             select_clause=properties_definition,
         )
-        results, binding = kg.run_gui_query(self.org,
-                                            self.project,
-                                            self.token, qd)
+        results, binding = kg.run_gui_query(self.org, self.project, self.token, qd)
         self.current_results = results
         self.current_binding = binding
         self.refresh_table()
         self.table.focus()
 
     def refresh_table(self):
-        '''refresh the results displayed in the table'''
+        """refresh the results displayed in the table"""
         self.table.clear(True)
         to_display = []
         if not self.current_binding:
@@ -226,21 +229,18 @@ class NexusSearch(App):
                 self.table.add_column(key, key=key)
                 to_display.append(k)
         for elem in self.current_results:
-            row = [
-                str(elem.get(self.current_binding[k], "").get("value", ""))
-                for k in to_display
-            ]
+            row = [str(elem.get(self.current_binding[k], "").get("value", "")) for k in to_display]
             self.table.add_row(*row)
             self.refresh_all()
 
     def on_data_table_cell_selected(self, event) -> None:
-        '''move to explore if a row is selected'''
+        """move to explore if a row is selected"""
         row_key = event.cell_key.row_key
-        entityid= self.table.get_cell(row_key, "entityid")
+        entityid = self.table.get_cell(row_key, "entityid")
         forge = bluepyentity.environments.create_forge(
-            'prod',
+            "prod",
             self.token,
-            bucket=f'{self.org}/{self.project}',
+            bucket=f"{self.org}/{self.project}",
             debug=True,
         )
         self.push_screen(Nexus(forge, entityid))
@@ -265,16 +265,12 @@ class NexusSearch(App):
         if input_type == "type":
             type_completion_candidate = event.value
             property_definitions = kg.get_properties_of_type(
-                self.org,
-                self.project,
-                self.token, type_completion_candidate.complete_type
+                self.org, self.project, self.token, type_completion_candidate.complete_type
             )
             type_completion_candidate.property_definitions = property_definitions
             candidate_properties = build_completion_candidates(property_definitions)
             for impacted_input_type in ["property", "order"]:
-                completion = self.app.query_one(
-                    "#search-completion-" + impacted_input_type
-                )
+                completion = self.app.query_one("#search-completion-" + impacted_input_type)
                 completion.initialize_candidates(candidate_properties)
             for c in self.vs.children:
                 c.remove()
@@ -297,5 +293,3 @@ class NexusSearch(App):
         self.vs.display = False
         self.refresh_table()
         self.table.focus()
-
-
