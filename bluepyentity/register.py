@@ -393,3 +393,80 @@ def register(forge, definition, dry_run=False):
         L.info("'%s' successfully registered with id: '%s'", res_type, resource.resource.id)
 
     return resource
+
+
+# tested the below with yml files that use IDs to refer to existing resources. E.g.,
+# ```
+# type: DetailedCircuit
+# atlasRelease: "https://bbp.epfl.ch/nexus/v1/resources/nse/test2/_/197d151d-4ed2-4549-85fd-6c51bd471262"
+# brainLocation:
+#     brainRegion:
+#         id: "http://api.brain-map.org/api/v2/data/Structure/549"
+#         label: Thalamus
+# circuitConfigPath: /test/path
+# circuitType: Test registration
+# description: Test registration, to be deprecated, should validate
+# name: Test Circuit registration
+# wasGeneratedBy: "https://bbp.epfl.ch/nexus/v1/resources/nse/test2/_/9be40e75-8744-415b-b0b4-e4074ff54a8f"
+# ```
+
+
+class newResource:
+    """Just an example of how this could work."""
+
+    # NOTE:
+    # Most of the functionality above would be unneeded as it would be handled in the definitions
+    # or in an adapter class like this that should optimally spit out kgforge.Resource class that
+    # would be ready to be registered or used by bluepyentity.nexus.entity.Entity
+
+    # entity_definitions.py should handle:
+    #  - input data type checking and structuring of data
+
+    # this class should handle:
+    # - anything that requires the forge instance (e.g., retrieving id fields)
+
+    # If we introduce forge instance into the pydantic definitions, this class would become
+    # obsolete. Not sure how much of functionality we want to build on those.
+
+    def __init__(self, forge, definition):
+        self._forge = forge
+        self._definition = definition
+
+    @property
+    def resolved_id_fields(self):
+        """Fetch and wrap the id fields."""
+        res = {}
+        for field in self._definition.get_id_fields():
+            if id_ := getattr(self._definition, field, None):
+                res[field] = _wrap_id_fetch(id_, self._forge)
+        return res
+
+    @property
+    def ready_to_register(self):
+        return dict(self._definition.to_dict(), **self.resolved_id_fields)
+
+
+def register_pydantic(forge, definition, dry_run=False):
+    """Used for testing. Does not really register anything."""
+    # NOTE: this function should do only three things:
+    # 1. create a kgforge.Resource with the help of a class like newResource above
+    # 2. try to register the resource
+    # 3. handle errors
+
+    # All the other functionality should be done ith newResource like class and/or the
+    # pydantic entity definitions in entity_definitions.py
+    if "type" not in definition:
+        raise NotImplementedError("Missing type")
+
+    res_type = definition.get("type")
+
+    from bluepyentity import entity_definitions
+
+    cls = getattr(entity_definitions, res_type, None)
+
+    if cls is not None:
+        res = cls.from_dict(definition)
+        item = newResource(forge, res)
+        from pprint import pprint
+
+        pprint(item.ready_to_register)
