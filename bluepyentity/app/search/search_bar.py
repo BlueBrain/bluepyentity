@@ -9,7 +9,8 @@ import bluepyentity.app.search.search_completion as search_completion
 
 
 class SearchBar(Input):
-    '''search bar for definition a SPARQL query'''
+    """search bar for definition a SPARQL query"""
+
     def __init__(
         self,
         name: str | None = None,
@@ -33,7 +34,7 @@ class SearchBar(Input):
         self.post_message(SearchBar.Updated(self, str(value), self.cursor_position))
 
     def restore_value(self):
-        '''restore previous value if selection did not happen'''
+        """restore previous value if selection did not happen"""
         if self.input_type in ["type", "property", "order"]:
             if self.value == "":
                 self.selected_candidate = None
@@ -44,9 +45,7 @@ class SearchBar(Input):
 
     def on_key(self, event: events.Key) -> None:
         completion = self.app.query_one("#search-completion-" + self.input_type)
-        completion_parent = self.app.query_one(
-            "#search-completion-container-" + self.input_type
-        )
+        completion_parent = self.app.query_one("#search-completion-container-" + self.input_type)
         if self.input_type in ["type", "property", "order"]:
             completion.display = True
             completion_parent.display = True
@@ -78,7 +77,8 @@ class SearchBar(Input):
         completion_parent.scroll_to_region(target_region, animate=False)
 
     class Updated(Message, bubble=True):
-        '''updated input'''
+        """updated input"""
+
         def __init__(self, sender: SearchBar, value: str, cursor_position: int) -> None:
             super().__init__()
             self.sender = sender
@@ -86,7 +86,8 @@ class SearchBar(Input):
             self.cursor_position = cursor_position
 
     class Selected(Message, bubble=True):
-        '''selected completion'''
+        """selected completion"""
+
         def __init__(
             self,
             sender: SearchBar,

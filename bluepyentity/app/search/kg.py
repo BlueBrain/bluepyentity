@@ -1,4 +1,7 @@
+import json
+import os
 from dataclasses import dataclass
+from datetime import datetime
 
 import requests
 from textual import log
@@ -36,7 +39,7 @@ class QueryDefinition:
 
 
 def load_types(org, project, token):
-    '''load all known types using default ES index'''
+    """load all known types using default ES index"""
     type_url = (
         f"https://bbp.epfl.ch/nexus/v1/views/{org}/{project}/"
         "https%3A%2F%2Fbluebrain.github.io%2Fnexus%2Fvocabulary%2FdefaultElasticSearchIndex/_search"
@@ -60,13 +63,17 @@ def load_types(org, project, token):
     return type_counts
 
 
-def perform_sparql_query(org, project, token, request_body):
-    '''perform the SPARQL request from request_body'''
+def perform_sparql_query(org, project, token, request_body, log_request_dir=None):
+    """perform the SPARQL request from request_body"""
     req_url = (
         f"https://bbp.epfl.ch/nexus/v1/views/{org}/{project}/"
         "https%3A%2F%2Fbluebrain.github.io%2Fnexus%2Fvocabulary%2FdefaultSparqlIndex/sparql"
     )
 
+    if log_request_dir:
+        base_name = datetime.now().strftime("%Y-%m-%d-%H:%M:%S.%f")
+        with open(os.path.join(log_request_dir, base_name + ".sparql"), 'w') as f:
+            f.write(request_body)
     req = requests.post(
         req_url,
         headers={
@@ -76,11 +83,15 @@ def perform_sparql_query(org, project, token, request_body):
         data=request_body,
     )
     req.raise_for_status()
-    return req.json()["results"]["bindings"]
+    res = req.json()["results"]["bindings"]
+    if log_request_dir:
+        with open(os.path.join(log_request_dir, base_name + ".json"), 'w') as f:
+            json.dump(res, f)
+    return res
 
 
 def get_first_entity_of_type(org, project, token, type):
-    '''get the first entity of a given type'''
+    """get the first entity of a given type"""
     request_body = (
         f" SELECT ?entityid ?mytype\n"
         f"WHERE {{\n"
@@ -89,13 +100,13 @@ def get_first_entity_of_type(org, project, token, type):
         f"}}\n"
         f"LIMIT 1\n"
     )
-    res = perform_sparql_query(org, project, token, request_body)
+    res = perform_sparql_query(org, project, token, request_body, "out")
     entity_id = res[0]["entityid"]["value"]
     return entity_id
 
 
 def get_properties_of_type(org, project, token, type):
-    '''get the properties of a type using the first instance found'''
+    """get the properties of a type using the first instance found"""
     first_entity_id = get_first_entity_of_type(org, project, token, type)
     request_body = (
         f"SELECT DISTINCT ?property ?value \n"
@@ -105,7 +116,7 @@ def get_properties_of_type(org, project, token, type):
         f"}}\n"
         f"LIMIT 60\n"
     )
-    l_properties = perform_sparql_query(org, project, token, request_body)
+    l_properties = perform_sparql_query(org, project, token, request_body, "out")
     # example {'property': {'type': 'uri',
     #                      'value': 'https://bluebrain.github.io/nexus/vocabulary/constrainedBy'},
     # 'value': {'type': 'uri',
@@ -122,13 +133,9 @@ def get_properties_of_type(org, project, token, type):
         return ret
 
     l_properties = get_unique_properties(l_properties)
-    l_properties.append({'property': {
-        'type': 'uri',
-        'value': 'entityid'
-    }, 'value': {
-        'type': 'uri',
-        'value': ""
-    }})
+    l_properties.append(
+        {"property": {"type": "uri", "value": "entityid"}, "value": {"type": "uri", "value": ""}}
+    )
 
     def is_blacklist(property):
         L_BLACKLIST = ["incoming", "outgoing"]
@@ -138,24 +145,23 @@ def get_properties_of_type(org, project, token, type):
                 return True
         return False
 
-    filtered_l_properties = [
-        prop for prop in l_properties if not is_blacklist(prop["value"])
-    ]
+    filtered_l_properties = [prop for prop in l_properties if not is_blacklist(prop["value"])]
     log(f"number of properties found {len(filtered_l_properties)}")
     return create_property_definitions(filtered_l_properties)
 
 
 def build_request_body(query_definition):
-    '''build a SPARQL request from a query definition'''
+    """build a SPARQL request from a query definition"""
+
     def get_property_clause(property_definition: PropertyDefinition, output_name):
-        return f"?entityid <{property_definition.value}> ?{output_name} .\n"
+        return f"OPTIONAL {{ ?entityid <{property_definition.value}> ?{output_name} . }}\n"
 
     select_clause = "SELECT DISTINCT ?entityid "
     property_clauses = ""
     map_property_binding = {}
     for idx, property_definition in enumerate(query_definition.select_clause):
         if property_definition.value == "entityid":
-            map_property_binding['entityid'] = 'entityid'
+            map_property_binding["entityid"] = "entityid"
             continue
         binding = f"o{idx}"
         property_clause = get_property_clause(property_definition, binding)
@@ -176,9 +182,9 @@ def build_request_body(query_definition):
         )
     order_clause = ""
     if query_definition.order_by:
-        order_clause = (
-            f"ORDER BY DESC(?{map_property_binding[query_definition.order_by.value]})"
-        )
+        order_clause = f"ORDER BY DESC(?{map_property_binding[query_definition.order_by.value]}), ?entityid"
+    else:
+        order_clause = f"ORDER BY ?entityid"
     request_body = (
         f"{select_clause} \n"
         f"WHERE {{"
@@ -187,14 +193,14 @@ def build_request_body(query_definition):
         f"{filter_clause}"
         f"}}\n"
         f"{order_clause}\n"
-        f"limit 20"
+        f"limit 5000"
     )
     log(f"request {request_body}")
     return request_body, map_property_binding
 
 
 def merge_multivaluated_properties(results):
-    '''merge property values showing up multiple time into a single list per property'''
+    """merge property values showing up multiple time into a single list per property"""
     grouped_results = []
     dict_result = {}
 
@@ -225,15 +231,17 @@ def merge_multivaluated_properties(results):
     return grouped_results
 
 
-def run_gui_query(org, project, token, query_definition):
+def run_query(org, project, token, query_definition, log_request_dir=None):
     request_body, binding = build_request_body(query_definition)
-    res = perform_sparql_query(org, project, token, request_body)
+    res = perform_sparql_query(org, project, token, request_body, log_request_dir)
+    log(f"number of results from the raw query {len(res)}")
     res = merge_multivaluated_properties(res)
     return res, binding
 
 
 def create_property_definitions(input):
-    '''create a list of PropertyDefinition out of a SPARQL query result'''
+    """create a list of PropertyDefinition out of a SPARQL query result"""
+
     def create_definition_from_item(input_item):
         return PropertyDefinition(
             value_definition=ValueDefinition(

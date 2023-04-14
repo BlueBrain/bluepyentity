@@ -9,9 +9,9 @@ from bluepyentity.app.search.search_bar import SearchBar
 from bluepyentity.app.search.search_completion import CompletionCandidate, SearchCompletion
 import bluepyentity
 from bluepyentity.app.explorer import Nexus
+from rich.text import Text
 
 # remove kgforge in explore
-# footer
 # manage back from explorer
 # keybinding for column selection
 # keybinding for cells
@@ -51,6 +51,12 @@ class NexusSearch(App):
         INPUT = (1,)
         COLUMNS_SELECTION = 2
 
+    BINDINGS_FOR_STATE = {
+        State.STAND_BY: [("s", "search", "Search")],
+        State.INPUT: [],
+        State.COLUMNS_SELECTION: [],
+    }
+
     def __init__(
         self,
         driver_class=None,
@@ -59,13 +65,24 @@ class NexusSearch(App):
         token: str | None = None,
         bucket: str | None = None,
     ):
-        super().__init__(driver_class, css_path, watch_css)
         self.token = token
         self.org, self.project = bucket.split("/")
         self._active_state = NexusSearch.State.STAND_BY
         self._current_focus = None
         self.table = None
         self.completion_items = {}
+        super().__init__(driver_class, css_path, watch_css)
+
+        self.completion_items["type"] = []
+        self.completion_items["property"] = []
+        self.completion_items["order"] = []
+        self.completion_items["value"] = []
+
+        self.selected_columns = {}
+        self.current_binding = None
+        self.current_results = None
+
+    def compose(self) -> ComposeResult:
         type_counts = kg.load_types(self.org, self.project, self.token)
         types = [
             CompletionCandidate(
@@ -78,15 +95,6 @@ class NexusSearch(App):
             for t in type_counts
         ]
         self.completion_items["type"] = types
-        self.completion_items["property"] = []
-        self.completion_items["order"] = []
-        self.completion_items["value"] = []
-
-        self.selected_columns = {}
-        self.current_binding = None
-        self.current_results = None
-
-    def compose(self) -> ComposeResult:
         l_input_types = []
 
         def label(input_type):
@@ -125,16 +133,23 @@ class NexusSearch(App):
         yield Horizontal(*l_input_types, id="h1", classes="search-bar-container")
         self.table = DataTable(zebra_stripes=True)
         yield self.table
-        yield Footer()
+        self.footer = Footer()
+        yield self.footer
 
     async def action_quit(self) -> None:
         """Quit the app"""
         self.app.exit()
 
+    # @property
+    # def namespace_bindings(self):
+    #     return self.BINDINGS_FOR_STATE[self._active_state]
+
     def set_active_state(self, state):
         """set the current active state"""
         log.info(f"state[{self._active_state}]->state[{state}]")
         self._active_state = state
+        self.footer.make_key_text()
+        self.footer._bindings_changed(focused=None)
 
     async def on_key(self, event: events.Key) -> None:
         key_focus = {"t": "type", "p": "property", "v": "value", "o": "order"}
@@ -150,7 +165,7 @@ class NexusSearch(App):
                 set_focus(key_focus[event.key])
                 return
             if event.key in "s":
-                self.run_query()
+                self.action_search()
                 return
             if event.key in "c":
                 self.set_active_state(NexusSearch.State.COLUMNS_SELECTION)
@@ -179,7 +194,7 @@ class NexusSearch(App):
 
         refresh_children(self)
 
-    def run_query(self):
+    def action_search(self):
         """perform the query based on the search bar inputs"""
         search_input = self.query_one("#search-input-type")
         type_ = None
@@ -209,7 +224,7 @@ class NexusSearch(App):
             order_by=order_property,
             select_clause=properties_definition,
         )
-        results, binding = kg.run_gui_query(self.org, self.project, self.token, qd)
+        results, binding = kg.run_query(self.org, self.project, self.token, qd, "out")
         self.current_results = results
         self.current_binding = binding
         self.refresh_table()
@@ -219,6 +234,7 @@ class NexusSearch(App):
         """refresh the results displayed in the table"""
         self.table.clear(True)
         to_display = []
+        log(f"number of results {len(self.current_results)}")
         if not self.current_binding:
             self.refresh_all()
             return
@@ -229,7 +245,21 @@ class NexusSearch(App):
                 self.table.add_column(key, key=key)
                 to_display.append(k)
         for elem in self.current_results:
-            row = [str(elem.get(self.current_binding[k], "").get("value", "")) for k in to_display]
+
+            def _display(k):
+                if k not in self.current_binding:
+                    return "[NO DATA]"
+                else:
+                    binding = self.current_binding[k]
+                    if binding not in elem:
+                        text = Text("[NO DATA]")
+                        text.stylize("bold red")
+
+                        return text 
+
+                    return str(elem.get(self.current_binding[k]).get("value", ""))
+
+            row = [_display(k) for k in to_display]
             self.table.add_row(*row)
             self.refresh_all()
 
