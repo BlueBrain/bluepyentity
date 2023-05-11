@@ -41,13 +41,12 @@ def entity(ctx, resource, dry_run):
     ]
     if dry_run:
         printout = [
-            {"DEFINITION": resource, "PARSED_RESOURCE": forge.as_json(registration.resource)}
+            {"DEFINITION": resource, "PARSED_RESOURCE": forge.as_json(registration)}
             for resource, registration in zip(resources, registrations)
         ]
     else:
         printout = [
-            (resource, registration.resource.id)
-            for resource, registration in zip(resources, registrations)
+            (resource, registration.id) for resource, registration in zip(resources, registrations)
         ]
 
     pretty.pprint(printout, console=cons)
@@ -58,5 +57,5 @@ def entity(ctx, resource, dry_run):
 def types(_):
     """List known entitye types"""
     cons = console.Console()
-    entities = bluepyentity.register.get_entity_definitions()
-    pretty.pprint(entities, console=cons)
+    entities = bluepyentity.entity_definitions.get_registerable_classes()
+    pretty.pprint(list(entities.keys()), console=cons)

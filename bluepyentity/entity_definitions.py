@@ -1,57 +1,123 @@
-"""WIP: pydantic datamodels with some of the functionality"""
+"""Datamodels with some of the functionality"""
 import datetime
-import json
+import inspect
 import pathlib
-from typing import List, Union
+import re
+import sys
+from abc import ABC, abstractmethod
+from typing import List, Literal
 
+import kgforge
 import pydantic
 
-# Custom pydantic types
+MODULE = sys.modules[__name__]
+
+FILE_URI = "file://"
+RE_URL = re.compile("^http(s)?://")
+RE_NOT_FILE_URI = re.compile(f"^(?!{FILE_URI})")
 
 
-class StrToList:
-    """Helper class to force strings to list of strings."""
+def _wrap_file_uri(path):
+    """Wraps path as file URI if not already wrapped"""
+    return RE_NOT_FILE_URI.sub(FILE_URI, path)
+
+
+def _is_url(item):
+    return isinstance(item, str) and RE_URL.match(item)
+
+
+def _fetch(id_, forge):
+    """Fetch a resource or a list of resources."""
+    if id_ is None:
+        return None
+    if _is_url(id_):
+        return forge.retrieve(id_, cross_bucket=True)
+    if isinstance(id_, list):
+        return [_fetch(i, forge) for i in id_]
+
+    raise RuntimeError(f"Unsupported type: {type(id_)}")
+
+
+# Converters
+
+
+class Converter(ABC):
+    """Converter class to convert data to expected format."""
 
     @classmethod
     def __get_validators__(cls):
-        yield cls.str_to_list
+        yield cls._custom_validator
 
     @staticmethod
-    def str_to_list(item):
-        if isinstance(item, str):
-            return [item]
+    @abstractmethod
+    def _custom_validator(item):
+        """Validator function that also implements data conversion.
 
-        raise TypeError("str type expected")
+        Should return data in expected format or raise an exception."""
 
 
-class DataDownload:
+class DataDownload(Converter):
     """Helper class to convert path to DataDownload like structure."""
 
-    # NOTE: functionality should likely be in the adapter class / registration functions, in which
-    # we could handle also other downloadable data creation like in entity-management. This could
-    # become a mere subclass of it for config files.
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.wrap
-
     @staticmethod
-    def wrap(path):
-        from bluepyentity.register import _wrap_linked_file_path
-
-        if isinstance(path, str):
-            return {"type": "DataDownload", "url": _wrap_linked_file_path(path)}
+    def _custom_validator(item):
+        if isinstance(item, str):
+            return {"type": "DataDownload", "url": _wrap_file_uri(item)}
 
         raise TypeError("str type expected")
 
 
-ListOfStr = Union[StrToList, List[str]]
+class ListOfAccepted(Converter, ABC):
+    """Helper class to force accepted data types to list of those."""
+
+    @property
+    @abstractmethod
+    def accepted(self):
+        """Abstract class variable that should be a set of accepted types"""
+
+    @staticmethod
+    def _as_list_of_accepted_types(item, accepted_types):
+        accepted = tuple(accepted_types)
+        if isinstance(item, accepted):
+            return [item]
+        if isinstance(item, list) and all(isinstance(i, accepted) for i in item):
+            return item
+
+        classlist = ", ".join(accepted)
+        raise TypeError(f"{classlist} or List[{classlist}] type expected")
+
+    @classmethod
+    def _custom_validator(cls, item):
+        return cls._as_list_of_accepted_types(item, cls.accepted)
+
+
+class ListOfStr(ListOfAccepted):
+    """Helper class to force strings to list of strings."""
+
+    accepted = {str}
+
+
+class DistributionConverter(ListOfAccepted):
+    """Convert Distribution entries to expected format"""
+
+    accepted = {str, dict}
+
+    @classmethod
+    def _custom_validator(cls, item):
+        items = cls._as_list_of_accepted_types(item, cls.accepted)
+
+        # item is already a dict or a str
+        def _distribution_dict(item):
+            return {"path": item} if isinstance(item, str) else item
+
+        return [_distribution_dict(i) for i in items]
 
 
 # Data Models
 
 
 class BaseModel(pydantic.BaseModel):
+    """Base model for the entities."""
 
     type: str = None
 
@@ -65,44 +131,81 @@ class BaseModel(pydantic.BaseModel):
         self.type = self.type or self.__class__.__name__
 
     @classmethod
-    def parse_obj(cls, dict_):
-        # If we wish to have a class that would automatically solve id's during creation of the model
-        # we can extend the parse_obj functionality. E.g., in an adapter class between the
-        # kgforge.Resource and the pydantic models here.
-
-        r = super().parse_obj(dict_)
-        print("GET AND OVERWRITE THE ID FIELDS HERE")
-        return r
-
-    @classmethod
     def from_dict(cls, dict_):
         """Create class from dict."""
         # Could as well be from file
         return cls.parse_obj(dict_)
 
-    @classmethod
-    def get_id_fields(cls):
-        """Gather ID fields of all the inherited classes."""
-        id_fields = [getattr(subcls, "_id_fields", set()) for subcls in cls.__mro__]
-        return set().union(*id_fields)
+    def to_resource(self, forge):
+        """Convert the definition to a nexus-forge resource."""
+        data = self.get_formatted_definition(forge)
 
-    def to_dict(self):
-        # Using json to recursively change all subclasses to dicts as well.
-        return json.loads(self.json())
+        # These need to be handled separately after creating the resource
+        single_files = {"configuration", "template", "target"}
+        all_special_cases = single_files.union({"derivation", "image", "distribution"})
+        to_add = {k: data.pop(k, None) for k in all_special_cases}
+
+        # Resource needs to be a Dataset for it to have methods such as add_derivation.
+        resource = kgforge.core.Resource.from_json(data)
+        resource = kgforge.specializations.resources.Dataset.from_resource(forge, resource)
+
+        if to_add["derivation"] is not None:
+            derivation = _fetch(to_add["derivation"], forge)
+            resource.add_derivation(derivation)
+
+        if to_add["image"] is not None:
+            for item in to_add["image"]:
+                resource.add_files(item)
+
+        if to_add["distribution"] is not None:
+            for item in to_add["distribution"]:
+                resource.add_distribution(**item)
+
+        for file_key in single_files:
+            if to_add[file_key] is not None:
+                setattr(resource, file_key, forge.attach(path=to_add[file_key]))
+
+        return resource
+
+    def get_formatted_definition(self, forge):
+        """Return the formatted definition."""
+        res = {k: v for k, v in self.__dict__.items() if v is not None}
+
+        for k, v in res.items():
+            if hasattr(v, "get_formatted_definition"):
+                res[k] = v.get_formatted_definition(forge)
+
+        return res
+
+
+class ID(BaseModel):
+
+    ids: ListOfStr
+
+    def get_formatted_definition(self, forge):
+        def _wrap_id_fetch(id_):
+            return {
+                "id": id_,
+                "type": _fetch(id_, forge).type,
+            }
+
+        ids = [_wrap_id_fetch(id_) for id_ in self.ids]
+
+        return ids[0] if len(ids) == 1 else ids
+
+
+class IDConverter(Converter):
+    @classmethod
+    def _custom_validator(cls, item):
+        return ID.from_dict({"ids": item})
 
 
 class EntityMixIn(BaseModel):
 
-    wasAttributedTo: str = None
-    wasGeneratedBy: str = None
-    wasDerivedFrom: str = None
+    wasAttributedTo: IDConverter = None
+    wasGeneratedBy: IDConverter = None
+    wasDerivedFrom: IDConverter = None
     dateCreated: datetime.datetime = None
-
-    _id_fields = {
-        "wasAttributedTo",
-        "wasGeneratedBy",
-        "wasDerivedFrom",
-    }
 
 
 class Entity(EntityMixIn):
@@ -110,27 +213,20 @@ class Entity(EntityMixIn):
     id: str = None
     name: str = None
     description: str = None
-    distribution: List[str] = None
+    distribution: DistributionConverter = None
 
 
 class Activity(BaseModel):
+
     name: str = None
-    status: str = None  # Pending/Running,Done/Failed
-    used: str = None
-    generated: str = None
+    status: Literal["Pending", "Running", "Done", "Failed"] = None
+    used: IDConverter = None
+    generated: IDConverter = None
     startedAtTime: str = None
     endedAtTime: str = None
-    wasStartedBy: str = None
-    wasInformedBy: str = None
-    wasInfluencedBy: str = None
-
-    _id_fields = {
-        "used",
-        "generated",
-        "wasStartedBy",
-        "wasInformedBy",
-        "wasInfluencedBy",
-    }
+    wasStartedBy: IDConverter = None
+    wasInformedBy: IDConverter = None
+    wasInfluencedBy: IDConverter = None
 
 
 class AnalysisReport(Entity):
@@ -141,22 +237,32 @@ class AnalysisReport(Entity):
     types: ListOfStr = None
 
 
-# Should likely need a specific handling to fetch and include the "notation" field
+class BrainRegion(BaseModel):
+    id: str
+
+    def get_formatted_definition(self, forge):
+        return forge.reshape(_fetch(self.id, forge), ["id", "label", "notation"])
+
+
+class BrainRegionConverter(Converter):
+    @classmethod
+    def _custom_validator(cls, item):
+        if isinstance(item, str):
+            item = {"id": item}
+        if isinstance(item, dict):
+            return BrainRegion.from_dict(item)
+
+        raise TypeError("str or dict type expected")
+
+
 class BrainLocation(BaseModel):
-    pass
+    brainRegion: BrainRegionConverter
 
 
 class ModelInstance(Entity):
     modelOf: str = None
     brainLocation: BrainLocation = None
-    subject: str = None
-
-    _id_fields = {
-        "subject",
-    }
-
-
-# CIRCUIT
+    subject: IDConverter = None
 
 
 class DetailedCircuit(ModelInstance):
@@ -170,11 +276,7 @@ class DetailedCircuit(ModelInstance):
     target: str = None
 
     # Added
-    atlasRelease: str = None
-
-    _id_fields = {
-        "atlasRelease",
-    }
+    atlasRelease: IDConverter = None
 
 
 class DetailedCircuitValidation(Activity):
@@ -184,21 +286,15 @@ class DetailedCircuitValidation(Activity):
 class DetailedCircuitValidationReport(AnalysisReport):
     pass
 
-    # SIMULATION
-
 
 class Simulation(Activity):
-    spikes: None
-    jobId: None
-    path: None
-    params: None
+    spikes: IDConverter = None
+    jobId: str = None
+    path: str = None
+    params: str = None
 
     # Added
-    simulationConfigPath: None
-
-    _id_fields = {
-        "spikes",
-    }
+    simulationConfigPath: DataDownload
 
 
 class SimulationCampaignGeneration(Activity):
@@ -206,11 +302,7 @@ class SimulationCampaignGeneration(Activity):
 
 
 class SimulationConfiguration(Entity):
-    circuit: str = None
-
-    _id_fields = {
-        "circuit",
-    }
+    circuit: IDConverter = None
 
 
 class SimulationCampaignConfiguration(Entity):
@@ -220,11 +312,27 @@ class SimulationCampaignConfiguration(Entity):
 
 
 class EModelScript(Entity):
-    etype_annotation_id: str = None
+    etype_annotation_id: IDConverter = None
     iteration_tag: str = None
     holding_current: str = None
     threshold_current: str = None
 
-    _id_fields = {
-        "etype_annotation_id",
+
+# Functions to fetch registerable classes
+
+
+def _is_registerable(cls):
+    non_registerable = {
+        BaseModel,
+        Entity,
+        EntityMixIn,
+        ID,
+        ModelInstance,
     }
+
+    return inspect.isclass(cls) and issubclass(cls, BaseModel) and cls not in non_registerable
+
+
+def get_registerable_classes():
+    """Fetch registerable classes as a dict."""
+    return dict(inspect.getmembers(MODULE, _is_registerable))
