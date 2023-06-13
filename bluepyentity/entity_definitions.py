@@ -136,34 +136,22 @@ class BaseModel(pydantic.BaseModel):
         # Could as well be from file
         return cls.parse_obj(dict_)
 
+    def _get_elements_to_attach(self, *_):
+        return {}
+
+    def _attach_to_resource(self, *_):
+        return
+
     def to_resource(self, forge):
         """Convert the definition to a nexus-forge resource."""
-        data = self.get_formatted_definition(forge)
-
-        # These need to be handled separately after creating the resource
-        single_files = {"configuration", "template", "target"}
-        all_special_cases = single_files.union({"derivation", "image", "distribution"})
-        to_add = {k: data.pop(k, None) for k in all_special_cases}
+        definition = self.get_formatted_definition(forge)
+        to_attach = self._get_elements_to_attach(definition)
 
         # Resource needs to be a Dataset for it to have methods such as add_derivation.
-        resource = kgforge.core.Resource.from_json(data)
+        resource = kgforge.core.Resource.from_json(definition)
         resource = kgforge.specializations.resources.Dataset.from_resource(forge, resource)
 
-        if to_add["derivation"] is not None:
-            derivation = _fetch(to_add["derivation"], forge)
-            resource.add_derivation(derivation)
-
-        if to_add["image"] is not None:
-            for item in to_add["image"]:
-                resource.add_files(item)
-
-        if to_add["distribution"] is not None:
-            for item in to_add["distribution"]:
-                resource.add_distribution(**item)
-
-        for file_key in single_files:
-            if to_add[file_key] is not None:
-                setattr(resource, file_key, forge.attach(path=to_add[file_key]))
+        self._attach_to_resource(forge, resource, to_attach)
 
         return resource
 
@@ -215,6 +203,13 @@ class Entity(EntityMixIn):
     description: str = None
     distribution: DistributionConverter = None
 
+    def _get_elements_to_attach(self, definition):
+        return {"distribution": definition.pop("distribution", None)}
+
+    def _attach_to_resource(self, forge, resource, to_attach):
+        if to_attach["distribution"] is not None:
+            for item in to_attach["distribution"]:
+                resource.add_distribution(**item)
 
 class Activity(BaseModel):
 
@@ -235,6 +230,23 @@ class AnalysisReport(Entity):
     # Added
     derivation: str = None
     types: ListOfStr = None
+
+    def _get_elements_to_attach(self, definition):
+        to_attach = super()._get_elements_to_attach(definition)
+        to_attach.update({k: definition.pop(k, None) for k in ("image", "derivation")})
+
+        return to_attach
+
+    def _attach_to_resource(self, forge, resource, to_attach):
+        super()._attach_to_resource(forge, resource, to_attach)
+
+        if to_attach["image"] is not None:
+            for item in to_attach["image"]:
+                resource.add_files(item)
+
+        if to_attach["derivation"] is not None:
+            derivation = _fetch(to_attach["derivation"], forge)
+            resource.add_derivation(derivation)
 
 
 class BrainRegion(BaseModel):
@@ -309,6 +321,21 @@ class SimulationCampaignConfiguration(Entity):
     configuration: pathlib.Path = None
     template: pathlib.Path = None
     target: pathlib.Path = None
+
+    def _get_elements_to_attach(self, definition):
+        to_attach = super()._get_elements_to_attach(definition)
+        to_attach.update(
+            {k: definition.pop(k, None) for k in ("configuration", "template", "target")}
+        )
+
+        return to_attach
+
+    def _attach_to_resource(self, forge, resource, to_attach):
+        super()._attach_to_resource(forge, resource, to_attach)
+
+        for file_key in ("configuration", "template", "target"):
+            if to_attach[file_key] is not None:
+                setattr(resource, file_key, forge.attach(path=to_attach[file_key]))
 
 
 class EModelScript(Entity):
