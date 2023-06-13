@@ -5,10 +5,13 @@ import pathlib
 import re
 import sys
 from abc import ABC, abstractmethod
-from typing import List, Literal
+from typing import List, Literal, Union
 
 import kgforge
 import pydantic
+
+from bluepyentity import utils
+from bluepyentity.exceptions import BluepyEntityError
 
 MODULE = sys.modules[__name__]
 
@@ -31,11 +34,11 @@ def _fetch(id_, forge):
     if id_ is None:
         return None
     if _is_url(id_):
-        return forge.retrieve(id_, cross_bucket=True)
+        return utils.forge_retrieve(forge, id_)
     if isinstance(id_, list):
         return [_fetch(i, forge) for i in id_]
 
-    raise RuntimeError(f"Unsupported type: {type(id_)}")
+    raise BluepyEntityError(f"Unsupported type: {type(id_)}")
 
 
 # Converters
@@ -83,7 +86,7 @@ class ListOfAccepted(Converter, ABC):
         if isinstance(item, list) and all(isinstance(i, accepted) for i in item):
             return item
 
-        classlist = ", ".join(accepted)
+        classlist = ", ".join(a.__name__ for a in accepted)
         raise TypeError(f"{classlist} or List[{classlist}] type expected")
 
     @classmethod
@@ -95,6 +98,15 @@ class ListOfStr(ListOfAccepted):
     """Helper class to force strings to list of strings."""
 
     accepted = {str}
+
+
+class ListOfPath(ListOfStr):
+    """Helper class to force strings to list of Paths."""
+
+    @classmethod
+    def _custom_validator(cls, item):
+        item = super()._custom_validator(item)
+        return [Path(i) for i in item]
 
 
 class DistributionConverter(ListOfAccepted):
@@ -119,22 +131,19 @@ class DistributionConverter(ListOfAccepted):
 class BaseModel(pydantic.BaseModel):
     """Base model for the entities."""
 
-    type: str = None
+    type: Union[str, ListOfStr] = None
 
     class Config:
-
         extra = pydantic.Extra.allow
         arbitrary_types_allowed = True
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.type = self.type or self.__class__.__name__
 
     @classmethod
     def from_dict(cls, dict_):
         """Create class from dict."""
-        # Could as well be from file
-        return cls.parse_obj(dict_)
+        try:
+            return cls.parse_obj(dict_)
+        except pydantic.error_wrappers.ValidationError as e:
+            raise BluepyEntityError(str(e)) from e
 
     def _get_elements_to_attach(self, *_):
         return {}
@@ -165,9 +174,13 @@ class BaseModel(pydantic.BaseModel):
 
         return res
 
+    @classmethod
+    def get_schema_type(cls):
+        """Get type name for the schema."""
+        return cls.__name__
+
 
 class ID(BaseModel):
-
     ids: ListOfStr
 
     def get_formatted_definition(self, forge):
@@ -189,7 +202,6 @@ class IDConverter(Converter):
 
 
 class EntityMixIn(BaseModel):
-
     wasAttributedTo: IDConverter = None
     wasGeneratedBy: IDConverter = None
     wasDerivedFrom: IDConverter = None
@@ -197,7 +209,6 @@ class EntityMixIn(BaseModel):
 
 
 class Entity(EntityMixIn):
-
     id: str = None
     name: str = None
     description: str = None
@@ -211,8 +222,8 @@ class Entity(EntityMixIn):
             for item in to_attach["distribution"]:
                 resource.add_distribution(**item)
 
-class Activity(BaseModel):
 
+class Activity(BaseModel):
     name: str = None
     status: Literal["Pending", "Running", "Done", "Failed"] = None
     used: IDConverter = None
@@ -225,10 +236,10 @@ class Activity(BaseModel):
 
 
 class AnalysisReport(Entity):
-    image: ListOfStr = None
+    image: ListOfPath = None
 
     # Added
-    derivation: str = None
+    derivation: IDConverter = None
     types: ListOfStr = None
 
     def _get_elements_to_attach(self, definition):
@@ -281,12 +292,6 @@ class DetailedCircuit(ModelInstance):
     circuitConfigPath: DataDownload
     circuitType: str = None
 
-    # These should be removed?
-    circuitBase: str = None
-    nodeCollection: str = None
-    edgeCollection: str = None
-    target: str = None
-
     # Added
     atlasRelease: IDConverter = None
 
@@ -302,7 +307,7 @@ class DetailedCircuitValidationReport(AnalysisReport):
 class Simulation(Activity):
     spikes: IDConverter = None
     jobId: str = None
-    path: str = None
+    path: pathlib.Path = None
     params: str = None
 
     # Added
@@ -345,13 +350,22 @@ class EModelScript(Entity):
     threshold_current: str = None
 
 
-# Functions to fetch registerable classes
+def get_type(definition):
+    """Get (and validate) the definition type."""
+    try:
+        type_ = BaseModel.parse_obj(definition).type
+    except pydantic.error_wrappers.ValidationError as e:
+        raise BluepyEntityError("'type' must be one of: str, List[str]") from e
+
+    if type_ is None:
+        raise BluepyEntityError("missing 'type' in definition")
+
+    return type_
 
 
 def _is_registerable(cls):
     non_registerable = {
         BaseModel,
-        Entity,
         EntityMixIn,
         ID,
         ModelInstance,

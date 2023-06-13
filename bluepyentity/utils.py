@@ -13,6 +13,8 @@ from pathlib import Path
 
 import yaml
 
+from bluepyentity.exceptions import BluepyEntityError
+
 
 class NoDatesSafeLoader(yaml.SafeLoader):  # pylint: disable=too-many-ancestors
     """SafeLoader without timestamp resolution.
@@ -118,7 +120,7 @@ def silence_stdout():
         yield
 
 
-def parse_dict_from_file(path):
+def parse_file(path):
     """Parse dictionary from a file.
 
     Args:
@@ -131,25 +133,15 @@ def parse_dict_from_file(path):
     try:
         return FILE_PARSERS[path.suffix.lower()](path.read_bytes())
     except KeyError as e:
-        raise RuntimeError(f"unknown file format: {e.args[0]}") from e
+        raise BluepyEntityError(f"unknown file format: {e.args[0]}") from e
 
 
-def traverse_attributes(item, path):
-    """Traverse item's attributes based on given attribute path.
+def forge_retrieve(forge, id_):
+    "Uniform retrieve for forge."
+    with silence_stdout():
+        resource = forge.retrieve(id_, cross_bucket=True)
 
-    Args:
-        item (object): Object to traverse.
-        path (Iterable): Attribute path.
+    if resource is None:
+        raise BluepyEntityError(f"Unable to find a resource with id: {id_}")
 
-    Returns:
-        Any,NoneType: Requested attribute, None if doesn't exist.
-
-    Examples:
-        >>> resource = kgforge.core.Resource.from_json({'a': {'b': {'c': 'd'}}})
-        ... traverse_attributes(resource, ['a', 'b', 'c'])  # Returns: 'd'
-        ... traverse_attributes(resource, ['a', 'b', 'x'])  # Returns: None
-    """
-    if not path or item is None:
-        return item
-
-    return traverse_attributes(getattr(item, path[0], None), path[1:])
+    return resource
