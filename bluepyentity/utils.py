@@ -32,7 +32,7 @@ class NoDatesSafeLoader(yaml.SafeLoader):  # pylint: disable=too-many-ancestors
 FILE_PARSERS = {
     ".yml": partial(yaml.load, Loader=NoDatesSafeLoader),
     ".yaml": partial(yaml.load, Loader=NoDatesSafeLoader),
-    ".json": json.load,
+    ".json": json.loads,
 }
 
 

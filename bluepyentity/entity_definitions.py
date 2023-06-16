@@ -38,7 +38,7 @@ def _fetch(id_, forge):
     if isinstance(id_, list):
         return [_fetch(i, forge) for i in id_]
 
-    raise BluepyEntityError(f"Unsupported type: {type(id_)}")
+    raise BluepyEntityError(f"Expected URL, got: {id_}")
 
 
 # Converters
@@ -106,7 +106,7 @@ class ListOfPath(ListOfStr):
     @classmethod
     def _custom_validator(cls, item):
         item = super()._custom_validator(item)
-        return [Path(i) for i in item]
+        return [pathlib.Path(i) for i in item]
 
 
 class DistributionConverter(ListOfAccepted):
@@ -363,15 +363,17 @@ def get_type(definition):
     return type_
 
 
-def _is_registerable(cls):
-    non_registerable = {
-        BaseModel,
-        EntityMixIn,
-        ID,
-        ModelInstance,
-    }
+# Listing non-registerable classes rather than registerable to make adding new classes more seamless.
+NON_REGISTERABLE = {
+    BaseModel,
+    EntityMixIn,
+    ID,
+    ModelInstance,
+}
 
-    return inspect.isclass(cls) and issubclass(cls, BaseModel) and cls not in non_registerable
+
+def _is_registerable(cls):
+    return inspect.isclass(cls) and issubclass(cls, BaseModel) and cls not in NON_REGISTERABLE
 
 
 def get_registerable_classes():
