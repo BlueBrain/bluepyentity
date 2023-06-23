@@ -65,6 +65,7 @@ class DataDownload(Converter):
     @staticmethod
     def _custom_validator(item):
         if isinstance(item, str):
+            item = str(pathlib.Path(item).resolve())
             return {"type": "DataDownload", "url": _wrap_file_uri(item)}
 
         raise TypeError("str type expected")
@@ -83,7 +84,7 @@ class ListOfAccepted(Converter, ABC):
         accepted = tuple(accepted_types)
         if isinstance(item, accepted):
             return [item]
-        if isinstance(item, list) and all(isinstance(i, accepted) for i in item):
+        if isinstance(item, list) and len(item) > 0 and all(isinstance(i, accepted) for i in item):
             return item
 
         classlist = ", ".join(a.__name__ for a in accepted)
@@ -118,7 +119,6 @@ class DistributionConverter(ListOfAccepted):
     def _custom_validator(cls, item):
         items = cls._as_list_of_accepted_types(item, cls.accepted)
 
-        # item is already a dict or a str
         def _distribution_dict(item):
             return {"path": item} if isinstance(item, str) else item
 
@@ -131,7 +131,7 @@ class DistributionConverter(ListOfAccepted):
 class BaseModel(pydantic.BaseModel):
     """Base model for the entities."""
 
-    type: Union[str, ListOfStr] = None
+    type: Union[pydantic.StrictStr, ListOfStr] = None
 
     class Config:
         extra = pydantic.Extra.allow
@@ -142,7 +142,7 @@ class BaseModel(pydantic.BaseModel):
         """Create class from dict."""
         try:
             return cls.parse_obj(dict_)
-        except pydantic.error_wrappers.ValidationError as e:
+        except pydantic.ValidationError as e:
             raise BluepyEntityError(str(e)) from e
 
     def _get_elements_to_attach(self, *_):
@@ -209,27 +209,31 @@ class EntityMixIn(BaseModel):
 
 
 class Entity(EntityMixIn):
-    id: str = None
-    name: str = None
-    description: str = None
+    id: pydantic.StrictStr = None
+    name: pydantic.StrictStr = None
+    description: pydantic.StrictStr = None
     distribution: DistributionConverter = None
 
     def _get_elements_to_attach(self, definition):
-        return {"distribution": definition.pop("distribution", None)}
+        to_attach = super()._get_elements_to_attach(definition)
+        to_attach.update({"distribution": definition.pop("distribution", None)})
+        return to_attach
 
     def _attach_to_resource(self, forge, resource, to_attach):
+        super()._attach_to_resource(forge, resource, to_attach)
+
         if to_attach["distribution"] is not None:
             for item in to_attach["distribution"]:
                 resource.add_distribution(**item)
 
 
 class Activity(BaseModel):
-    name: str = None
+    name: pydantic.StrictStr = None
     status: Literal["Pending", "Running", "Done", "Failed"] = None
     used: IDConverter = None
     generated: IDConverter = None
-    startedAtTime: str = None
-    endedAtTime: str = None
+    startedAtTime: pydantic.StrictStr = None
+    endedAtTime: pydantic.StrictStr = None
     wasStartedBy: IDConverter = None
     wasInformedBy: IDConverter = None
     wasInfluencedBy: IDConverter = None
@@ -261,7 +265,7 @@ class AnalysisReport(Entity):
 
 
 class BrainRegion(BaseModel):
-    id: str
+    id: pydantic.StrictStr
 
     def get_formatted_definition(self, forge):
         return forge.reshape(_fetch(self.id, forge), ["id", "label", "notation"])
@@ -354,7 +358,7 @@ def get_type(definition):
     """Get (and validate) the definition type."""
     try:
         type_ = BaseModel.parse_obj(definition).type
-    except pydantic.error_wrappers.ValidationError as e:
+    except pydantic.ValidationError as e:
         raise BluepyEntityError("'type' must be one of: str, List[str]") from e
 
     if type_ is None:
