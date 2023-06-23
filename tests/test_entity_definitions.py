@@ -205,6 +205,58 @@ class TestBaseModel:
         mock_called.assert_called_once_with("fake_forge")
 
 
+def _get_classes_overwriting_base_model_attr(attribute_name):
+    """Get classes that overwrite the BaseModel.{attribute_name}"""
+    import inspect
+
+    base = test_module.BaseModel
+    base_attr = getattr(test_module.BaseModel, attribute_name)
+
+    def inspect_fun(cls):
+        return (
+            inspect.isclass(cls)
+            and issubclass(cls, base)
+            and getattr(cls, attribute_name) is not base_attr
+        )
+
+    return set(cls for _, cls in inspect.getmembers(test_module, inspect_fun))
+
+
+@pytest.mark.parametrize("cls", _get_classes_overwriting_base_model_attr("_attach_to_resource"))
+def test_classes_call_super__attach_to_resource(cls):
+    """Test that super()._attach_to_resource is always called"""
+    super_ = None
+    for parent in cls.__mro__:
+        if parent._attach_to_resource is not cls._attach_to_resource:
+            super_ = parent
+            break
+
+    with patch(f"{test_module.__name__}.{super_.__name__}._attach_to_resource") as super_method:
+        entity = cls.from_dict({"circuitConfigPath": "/fake/path"})
+        entity._attach_to_resource(
+            forge=None,
+            resource=None,
+            to_attach=Mock(__getitem__=Mock(return_value=None)),
+        )
+        super_method.assert_called_once()
+
+
+@pytest.mark.parametrize("cls", _get_classes_overwriting_base_model_attr("_get_elements_to_attach"))
+def test_classes_call_super__get_elements_to_attach(cls):
+    """Test that super()._get_elements_to_attach is always called"""
+    super_ = None
+    for parent in cls.__mro__:
+        if parent._get_elements_to_attach is not cls._get_elements_to_attach:
+            super_ = parent
+            break
+
+    with patch(f"{test_module.__name__}.{super_.__name__}._get_elements_to_attach") as super_method:
+        entity = cls.from_dict({"circuitConfigPath": "/fake/path"})
+        mock_definition = Mock(__getitem__=Mock(return_value=None))
+        entity._get_elements_to_attach(definition=mock_definition)
+        super_method.assert_called_once()
+
+
 def test__is_registerable():
     assert not test_module._is_registerable("a")
     assert not test_module._is_registerable(str)
