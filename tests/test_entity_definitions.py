@@ -36,6 +36,13 @@ def test__fetch():
         test_module._fetch(id_=Mock(), forge=None)
 
 
+def test__get_mime_type():
+    assert test_module._get_mime_type("file.fake") is None
+    assert test_module._get_mime_type("file.fake", "text/plain") == "text/plain"
+    assert test_module._get_mime_type("image.jpg", "image/png") == "image/jpeg"
+    assert test_module._get_mime_type("test.json") == "application/json"
+
+
 class TestDataDownload:
     def setup_method(self):
         self.test_obj = test_module.DataDownload()
@@ -176,7 +183,9 @@ class TestBaseModel:
         class RaiseValidationError(pydantic.BaseModel):
             test_value: pydantic.StrictStr
 
-        mock = lambda x: RaiseValidationError.parse_obj({"test_value": 42})
+        def mock(x):
+            return RaiseValidationError.parse_obj({"test_value": 42})
+
         with patch(f"{test_module.__name__}.BaseModel.parse_obj", mock):
             with pytest.raises(BluepyEntityError, match="str type expected"):
                 self.test_cls.from_dict({})
@@ -184,7 +193,10 @@ class TestBaseModel:
     def test_get_formatted_definition(self):
         """Test that the childrens' `get_formatted_definition` is called recursively.
         Also test that recursion stops for children that does not have it."""
-        wrap_ = lambda x: Mock(get_formatted_definition=x)
+
+        def wrap_(x):
+            return Mock(get_formatted_definition=x)
+
         mock_called = Mock(return_value={"b": "c"})
         mock_not_called = Mock()
 

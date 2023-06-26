@@ -1,6 +1,7 @@
 """Datamodels with some of the functionality"""
 import datetime
 import inspect
+import mimetypes
 import pathlib
 import re
 import sys
@@ -39,6 +40,10 @@ def _fetch(id_, forge):
         return [_fetch(i, forge) for i in id_]
 
     raise BluepyEntityError(f"Expected URL, got: {id_}")
+
+
+def _get_mime_type(path, default=None):
+    return mimetypes.guess_type(path)[0] or default
 
 
 # Converters
@@ -344,7 +349,9 @@ class SimulationCampaignConfiguration(Entity):
 
         for file_key in ("configuration", "template", "target"):
             if to_attach[file_key] is not None:
-                setattr(resource, file_key, forge.attach(path=to_attach[file_key]))
+                path = to_attach[file_key]
+                content_type = _get_mime_type(path, "text/plain")
+                setattr(resource, file_key, forge.attach(path=path, content_type=content_type))
 
 
 class EModelScript(Entity):
