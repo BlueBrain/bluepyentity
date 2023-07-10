@@ -67,6 +67,27 @@ One can navigate the links of an identifier with:
 
 .. _`keyring`: https://github.com/jaraco/keyring
 
+Search:
+~~~~~~~
+
+One can search through the knowledge graph with:
+
+.. code-block:: bash
+
+    bluepyentity search
+
+use 't' to define a type, 'p' a property to filter, 'v' for the value this property should contain, 'o' to order by a property.
+
+use 'tab' for completion.
+
+use 'escape' for escaping completion.
+
+use 's' to execute the search.
+
+use 'enter' to explore a specific row.
+
+use 'c' to define columns to display in the search results.
+
 
 Acknowledgements
 ----------------
