@@ -31,7 +31,7 @@ class SearchBar(Input):
         self.selected_candidate = None
 
     def watch_value(self, value: str) -> None:
-        self.post_message(SearchBar.Updated(self, str(value), self.cursor_position))
+        self.post_message(SearchBar.Updated(self, str(value)))
 
     def restore_value(self):
         """restore previous value if selection did not happen"""
@@ -44,6 +44,7 @@ class SearchBar(Input):
                 self.value = ""
 
     def on_key(self, event: events.Key) -> None:
+        """manages key event in the search bar"""
         completion = self.app.query_one("#search-completion-" + self.input_type)
         completion_parent = self.app.query_one("#search-completion-container-" + self.input_type)
         if self.input_type in ["type", "property", "order"]:
@@ -62,7 +63,6 @@ class SearchBar(Input):
                 candidate = completion.highlighted_candidate
                 self.value = candidate.name
                 self.selected_candidate = candidate
-                self.cursor_position = len(str(self.value))
                 self.post_message(SearchBar.Selected(self, self.input_type, candidate))
             event.stop()
         elif event.key == "escape":
@@ -71,22 +71,20 @@ class SearchBar(Input):
             self.restore_value()
             self.screen.set_focus(None)
 
-        # TODO: More sensible scrolling
-        x, y, width, height = completion.region
+        x, _, width, height = completion.region
         target_region = Region(x, completion.highlight_index, width, height)
         completion_parent.scroll_to_region(target_region, animate=False)
 
     class Updated(Message, bubble=True):
-        """updated input"""
+        """updated input event"""
 
-        def __init__(self, sender: SearchBar, value: str, cursor_position: int) -> None:
+        def __init__(self, sender: SearchBar, value: str) -> None:
             super().__init__()
             self.sender = sender
             self.value = value
-            self.cursor_position = cursor_position
 
     class Selected(Message, bubble=True):
-        """selected completion"""
+        """selected completion event"""
 
         def __init__(
             self,

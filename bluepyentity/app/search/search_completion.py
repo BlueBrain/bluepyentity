@@ -16,11 +16,15 @@ import bluepyentity.app.search.kg as kg
 
 @dataclass
 class CompletionCandidate:
+    ''' an item of the completion widget'''
+    # the displayed name
     name: str
+    # the number of hits
     count: int | None
-    complete_type: str | None
+    # the complete name (complete url for kg)
+    complete_name: str | None
+    # the kg definition of the property if the candidate is a property
     property_definition: kg.PropertyDefinition | None
-    property_definitions: list[kg.PropertyDefinition] | None
 
 
 class SearchCompletionRender:
@@ -37,10 +41,11 @@ class SearchCompletionRender:
         self.matches = matches
         self.highlight_index = highlight_index
         self.component_styles = component_styles
+        self.input_type = input_type
+
         self._highlight_item_style = self.component_styles.get(
             "search-completion--selected-item"
         ).rich_style
-        self.input_type = input_type
 
     def __rich_console__(self, console: Console, options: ConsoleOptions):
         matches = []

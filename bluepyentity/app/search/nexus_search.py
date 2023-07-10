@@ -20,23 +20,28 @@ from rich.text import Text
 # more predicates
 # pagination
 # input for number of rows
-# remove special case for entityid
-
-DEFAULT_SHORT_LIST = ["entityid", "createdAt", "project", "name", "type", "self"]
 
 
 def build_completion_candidates(property_definitions):
     """create a list of completion candidate out of property definitions"""
     return [
         CompletionCandidate(
-            name=pd.value.split("/")[-1],
+            name=pd.property_name.split("/")[-1],
             count=None,
-            complete_type=None,
+            complete_name=None,
             property_definition=pd,
-            property_definitions=None,
         )
         for pd in property_definitions
     ]
+
+
+def get_column_names(results):
+    """get a sorted list of unique columns from a query result"""
+    column_names = set()
+    for res in results:
+        for key in res.keys():
+            column_names.add(key)
+    return sorted(list(column_names))
 
 
 class NexusSearch(App):
@@ -64,44 +69,48 @@ class NexusSearch(App):
         watch_css: bool = False,
         token: str | None = None,
         bucket: str | None = None,
+        log_dir: str | None = None,
     ):
         self.token = token
         self.org, self.project = bucket.split("/")
+
         self._active_state = NexusSearch.State.STAND_BY
-        self._current_focus = None
+
+        # the textual widget for the table
         self.table = None
-        self.completion_items = {}
+        # write to queries to log directory if set
+        self.log_dir = log_dir
         super().__init__(driver_class, css_path, watch_css)
 
-        self.completion_items["type"] = []
-        self.completion_items["property"] = []
-        self.completion_items["order"] = []
-        self.completion_items["value"] = []
-
+        # store the column vertical scroll
+        self.columns_vs = None
+        # store the column checkbox widgets
         self.selected_columns = {}
-        self.current_binding = None
-        self.current_results = None
+        # store the list of results returned from the query
+        self.current_results = []
 
     def compose(self) -> ComposeResult:
-        type_counts = kg.load_types(self.org, self.project, self.token)
+        type_counts = kg.load_types(self.org, self.project, self.token, self.log_dir)
         types = [
             CompletionCandidate(
                 name=t["key"].split("/")[-1],
                 count=t["doc_count"],
-                complete_type=t["key"],
+                complete_name=t["key"],
                 property_definition=None,
-                property_definitions=None,
             )
             for t in type_counts
         ]
-        self.completion_items["type"] = types
-        l_input_types = []
+        l_horizontal_widget_content = []
 
         def label(input_type):
             return f"\[{input_type[0]}]{input_type[1:]}>"
 
         for input_type in ["type", "property", "value", "order"]:
-            l_input_types.append(
+            if input_type == "type":
+                completion_list = types
+            else:
+                completion_list = []
+            l_horizontal_widget_content.append(
                 Vertical(
                     Horizontal(
                         Static(
@@ -116,7 +125,7 @@ class NexusSearch(App):
                     ),
                     Container(
                         SearchCompletion(
-                            candidates=self.completion_items[input_type],
+                            candidates=completion_list,
                             id="search-completion-" + input_type,
                             classes="search-completion",
                         ),
@@ -127,22 +136,22 @@ class NexusSearch(App):
                     classes="search-container",
                 )
             )
-        self.vs = VerticalScroll(classes="column-choice")
-        self.vs.display = False
-        l_input_types.append(self.vs)
-        yield Horizontal(*l_input_types, id="h1", classes="search-bar-container")
+
+        self.columns_vs = VerticalScroll(classes="column-choice")
+        self.columns_vs.display = False
+        l_horizontal_widget_content.append(self.columns_vs)
+        
+        yield Horizontal(*l_horizontal_widget_content, id="h1", classes="search-bar-container")
+
         self.table = DataTable(zebra_stripes=True)
         yield self.table
+
         self.footer = Footer()
         yield self.footer
 
     async def action_quit(self) -> None:
         """Quit the app"""
         self.app.exit()
-
-    # @property
-    # def namespace_bindings(self):
-    #     return self.BINDINGS_FOR_STATE[self._active_state]
 
     def set_active_state(self, state):
         """set the current active state"""
@@ -152,6 +161,7 @@ class NexusSearch(App):
         self.footer._bindings_changed(focused=None)
 
     async def on_key(self, event: events.Key) -> None:
+        """manages key pressed events"""
         key_focus = {"t": "type", "p": "property", "v": "value", "o": "order"}
         log.info(f"active state {self._active_state}")
 
@@ -169,7 +179,7 @@ class NexusSearch(App):
                 return
             if event.key in "c":
                 self.set_active_state(NexusSearch.State.COLUMNS_SELECTION)
-                self.show_column_selection()
+                self.show_columns_selection()
                 return
         if self._active_state == NexusSearch.State.INPUT:
             if event.key == "escape":
@@ -199,18 +209,15 @@ class NexusSearch(App):
         search_input = self.query_one("#search-input-type")
         type_ = None
         if search_input.selected_candidate:
-            type_ = search_input.selected_candidate.complete_type
+            type_ = search_input.selected_candidate.complete_name
 
         if not type_:
             return
 
-        properties_definition = None
-        if search_input.selected_candidate:
-            properties_definition = search_input.selected_candidate.property_definitions
         value = self.query_one("#search-input-value").value
 
-        property_definition = None
         selected_candidate = self.query_one("#search-input-property").selected_candidate
+        property_definition = None
         if selected_candidate:
             property_definition = selected_candidate.property_definition
 
@@ -222,11 +229,16 @@ class NexusSearch(App):
             type=type_,
             property_predicate=kg.PropertyPredicate(property_definition, value, "CONTAINS"),
             order_by=order_property,
-            select_clause=properties_definition,
         )
-        results, binding = kg.run_query(self.org, self.project, self.token, qd, "out")
+        results = kg.run_query(self.org, self.project, self.token, qd, self.log_dir)
         self.current_results = results
-        self.current_binding = binding
+        column_names = get_column_names(results)
+        for cn in column_names:
+            value = True
+            cb = Checkbox(cn, value=value)
+            # assuming all the properties do not collide here
+            self.selected_columns[cn] = cb
+            self.columns_vs.mount(cb)
         self.refresh_table()
         self.table.focus()
 
@@ -235,38 +247,35 @@ class NexusSearch(App):
         self.table.clear(True)
         to_display = []
         log(f"number of results {len(self.current_results)}")
-        if not self.current_binding:
-            self.refresh_all()
-            return
-        for k in self.current_binding.keys():
-            checkbox_status = self.selected_columns[k]
-            if checkbox_status.value:
-                key = k.split("/")[-1]
-                self.table.add_column(key, key=key)
+
+        column_names = get_column_names(self.current_results)
+        for k in column_names:
+            checkbox_status = self.selected_columns.get(k, None)
+
+            if checkbox_status is None or checkbox_status.value:
+                self.table.add_column(k, key=k)
                 to_display.append(k)
         for elem in self.current_results:
 
             def _display(k):
-                if k not in self.current_binding:
-                    return "[NO DATA]"
-                else:
-                    binding = self.current_binding[k]
-                    if binding not in elem:
-                        text = Text("[NO DATA]")
-                        text.stylize("bold red")
+                if k not in elem:
+                    text = Text("[NO DATA]")
+                    text.stylize("bold red")
+                    return text
 
-                        return text 
-
-                    return str(elem.get(self.current_binding[k]).get("value", ""))
+                return str(elem.get(k).get("value", ""))
 
             row = [_display(k) for k in to_display]
+            log(f"adding row: {str(row)}")
             self.table.add_row(*row)
             self.refresh_all()
+
+        self.table.add_row(*to_display)
 
     def on_data_table_cell_selected(self, event) -> None:
         """move to explore if a row is selected"""
         row_key = event.cell_key.row_key
-        entityid = self.table.get_cell(row_key, "entityid")
+        entityid = self.table.get_cell(row_key, "@id")
         forge = bluepyentity.environments.create_forge(
             "prod",
             self.token,
@@ -276,6 +285,7 @@ class NexusSearch(App):
         self.push_screen(Nexus(forge, entityid))
 
     def on_search_bar_updated(self, event: SearchBar.Updated) -> None:
+        """manages update events in the search bar"""
         input_type = event.sender.input_type
         completion = self.app.query_one("#search-completion-" + input_type)
         initial_candidates = completion.initial_candidates
@@ -291,35 +301,31 @@ class NexusSearch(App):
         self.refresh_all()
 
     def on_search_bar_selected(self, event: SearchBar.Selected) -> None:
+        """manages selection event in the search bar"""
         input_type = event.sender.input_type
         if input_type == "type":
             type_completion_candidate = event.value
             property_definitions = kg.get_properties_of_type(
-                self.org, self.project, self.token, type_completion_candidate.complete_type
+                self.org,
+                self.project,
+                self.token,
+                type_completion_candidate.complete_name,
+                self.log_dir,
             )
-            type_completion_candidate.property_definitions = property_definitions
             candidate_properties = build_completion_candidates(property_definitions)
             for impacted_input_type in ["property", "order"]:
                 completion = self.app.query_one("#search-completion-" + impacted_input_type)
                 completion.initialize_candidates(candidate_properties)
-            for c in self.vs.children:
+            for c in self.columns_vs.children:
                 c.remove()
-            self.selected_columns = {}
-            for pd in property_definitions:
-                value = False
-                for k in DEFAULT_SHORT_LIST:
-                    if k in pd.value:
-                        value = True
-                        break
-                cb = Checkbox(pd.value, value=value)
-                self.selected_columns[pd.value] = cb
-                self.vs.mount(cb)
             self.refresh_all()
 
-    def show_column_selection(self):
-        self.vs.display = True
+    def show_columns_selection(self):
+        """ show columns selection widget"""
+        self.columns_vs.display = True
 
     def process_columns_selection(self):
-        self.vs.display = False
+        """update table based on columns selection"""
+        self.columns_vs.display = False
         self.refresh_table()
         self.table.focus()
