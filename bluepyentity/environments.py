@@ -1,5 +1,4 @@
-# SPDX-License-Identifier: LGPL-3.0-or-later
-
+# SPDX-License-Identifier: Apache-2.0
 """Wrap different environments with different parameters ex: endpoints"""
 
 import importlib.resources

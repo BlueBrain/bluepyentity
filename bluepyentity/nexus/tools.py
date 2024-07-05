@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: LGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 
 """Some wrappers to simplify using external packages."""
 # TODO: the emodel wrappers are very tailored to the mechanims we're are storing in the notebook

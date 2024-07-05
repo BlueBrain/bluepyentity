@@ -1,4 +1,5 @@
 """Display KG entity as a tree. Press "f" key for navigating links."""
+
 import itertools
 import random
 from collections import defaultdict
