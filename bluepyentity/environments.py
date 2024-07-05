@@ -1,5 +1,4 @@
-# SPDX-License-Identifier: LGPL-3.0-or-later
-
+# SPDX-License-Identifier: Apache-2.0
 """Wrap different environments with different parameters ex: endpoints"""
 
 import importlib.resources
@@ -17,7 +16,9 @@ ENVIRONMENTS = {
 
 def get_environment(env):
     """get yaml associated with environment `env`"""
-    return importlib.resources.path("bluepyentity.data", ENVIRONMENTS[env])
+    return importlib.resources.as_file(
+        importlib.resources.files("bluepyentity.data").joinpath(ENVIRONMENTS[env])
+    )
 
 
 def create_forge(environment, token, bucket, store_overrides=None, debug=False):
