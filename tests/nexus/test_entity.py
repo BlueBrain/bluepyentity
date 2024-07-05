@@ -84,7 +84,10 @@ def test_entity():
 
 def test_entity_download():
     # Can't download
-    download_resource_mock = MagicMock()
+    def NexusConnector(name: str, path: str):
+        pass
+
+    download_resource_mock = MagicMock(spec=NexusConnector)
     connector = MagicMock(download_resource=download_resource_mock)
     resource = Resource(id="id1", type="DetailedCircuit", name="fake_name", distribution=None)
     entity = test_module.Entity(resource, connector=connector)
@@ -102,18 +105,22 @@ def test_entity_download():
     # specify path and item to download
     download_resource_mock.reset_mock()
     entity.download(items=[1, 2], path="fake_path")
-    download_resource_mock.has_calls((call(1, "fake_path"), call(2, "fake_path")))
+    download_resource_mock.assert_has_calls((call(1, "fake_path"), call(2, "fake_path")))
 
 
 def test_entity_to_dict():
     resource = Resource(id="id1", type="DetailedCircuit", name="fake_name", distribution=None)
-    to_dict_mock = MagicMock()
+
+    def NexusResource(entity, store_metadata):
+        pass
+
+    to_dict_mock = MagicMock(spec=NexusResource)
     helper = MagicMock(to_dict=to_dict_mock)
     entity = test_module.Entity(resource, helper=helper)
 
     entity.to_dict()
     entity.to_dict(store_metadata=False)
-    to_dict_mock.has_calls(
+    to_dict_mock.assert_has_calls(
         (
             call(entity, store_metadata=True),
             call(entity, store_metadata=False),

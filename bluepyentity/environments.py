@@ -16,7 +16,9 @@ ENVIRONMENTS = {
 
 def get_environment(env):
     """get yaml associated with environment `env`"""
-    return importlib.resources.as_file(importlib.resources.files("bluepyentity.data").joinpath(ENVIRONMENTS[env]))
+    return importlib.resources.as_file(
+        importlib.resources.files("bluepyentity.data").joinpath(ENVIRONMENTS[env])
+    )
 
 
 def create_forge(environment, token, bucket, store_overrides=None, debug=False):
