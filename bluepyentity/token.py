@@ -83,6 +83,20 @@ def _get_token_keyring(env, username):
     return token
 
 
+def _get_token_interactive(tries=3):
+    """Get the token interactively, try `tries` times."""
+    for _ in range(tries):
+        token = bluepyentity.utils.get_secret(prompt="Token: ")
+        if is_valid(token):
+            break
+        L.error("The token could not be decoded or has expired. the length was %d", len(token))
+    else:
+        L.warning("Did not get token interactively")
+        return None
+
+    return token
+
+
 def set_token(env, username=None, token=None):
     """set the token for the username and environment
 
@@ -90,11 +104,10 @@ def set_token(env, username=None, token=None):
     """
     username = _getuser(username)
 
-    token = bluepyentity.utils.get_secret(prompt="Token: ")
-
     if not is_valid(token):
-        L.error("The token could not be decoded or has expired. the length was %d", len(token))
-        return None
+        token = _get_token_interactive()
+        if token is None:
+            return None
 
     try:
         keyring.set_password(_token_name(env), username, token)
@@ -113,13 +126,14 @@ def get_token(env, username=None):
         functools.partial(_get_token_keyring, env, username),
         _get_token_environment,
         _get_token_kerberos,
+        _get_token_interactive,
     ):
+        token = func()
         if is_valid(token):
             break
-        token = func()
 
-    if not is_valid(token):
-        token = set_token(env=env, username=username)
+    if is_valid(token):
+        set_token(env=env, username=username, token=token)
 
     return token
 
