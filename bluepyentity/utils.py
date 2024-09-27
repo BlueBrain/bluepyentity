@@ -2,11 +2,14 @@
 
 """useful utilities"""
 import getpass
+import json
 import sys
 import termios
 import urllib.parse
 from collections import OrderedDict
-from typing import Optional
+from os import PathLike
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 from bluepyentity.exceptions import BluepyEntityError
 
@@ -118,3 +121,13 @@ def url_without_revision(url: str) -> str:
     """Return the url without the revision query."""
     url = urllib.parse.urlparse(url)
     return url._replace(query="").geturl()
+
+
+def load_json(filepath: PathLike) -> Dict[Any, Any]:
+    """Load from JSON file."""
+    return json.loads(Path(filepath).read_bytes())
+
+
+def write_json(filepath: PathLike, data: Dict[Any, Any], indent=None) -> None:
+    """Write json file."""
+    Path(filepath).write_text(data=json.dumps(data, indent=indent), encoding="utf-8")
